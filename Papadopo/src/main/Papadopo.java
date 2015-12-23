@@ -1,5 +1,7 @@
 package main;
 
+import java.util.ArrayList;
+
 public class Papadopo 
 {
 
@@ -8,6 +10,7 @@ public class Papadopo
 		// TODO Auto-generated method stub
 		System.out.println("Testing");
 		System.out.println("seon");
+		ArrayList<String> list=new ArrayList<>();
 	}
 
 }
