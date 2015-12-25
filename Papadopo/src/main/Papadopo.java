@@ -16,7 +16,11 @@ public class Papadopo
 			String filename=count+".txt";
 			try (BufferedReader reader=new BufferedReader(new FileReader(filename)))
 			{
-				System.out.println(count+")"+reader.readLine());
+				System.out.println(count+")");
+				for(String word: reader.readLine().split(" "))
+				{
+					System.out.println(word);
+				}
 				count++;
 			} catch (IOException e) 
 			{
