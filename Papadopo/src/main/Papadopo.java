@@ -20,6 +20,7 @@ public class Papadopo
 				for(String word: reader.readLine().split(" "))
 				{
 					System.out.println(word);
+					
 				}
 				count++;
 			} catch (IOException e) 
