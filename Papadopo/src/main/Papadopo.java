@@ -14,7 +14,8 @@ public class Papadopo
 	}
 	public static void main(String[] args) 
 	{
-		int cores = Runtime.getRuntime().availableProcessors();
+		long before=System.nanoTime();
+		int cores = Runtime.getRuntime().availableProcessors()-3;
 		System.out.println(cores);
 //		Epic stack overflow answer:
 //		If cores is less than one, either your processor is about to die, 
@@ -73,7 +74,7 @@ public class Papadopo
 			}
 			
 		}
-		System.out.println("Docs= "+docID);
+		System.out.println("Time= "+(System.nanoTime()-before));//Time= 33784762 ,34195468, 33424055
 	}
 
 }
