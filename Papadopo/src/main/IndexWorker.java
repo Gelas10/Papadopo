@@ -19,7 +19,7 @@ public class IndexWorker extends Thread
 		for (String word : words) 
 		{
 //			System.out.println(word);
-			index.put2(word,doc);
+			index.put(word,doc);
 		}
 		
 	}

@@ -10,12 +10,11 @@ public class InvertedIndex
 		  public synchronized void increment () { ++value;      }
 		  public int  get ()       { return value; }
 	}
-	HashMap<String,Set<Integer>> index;//HashMap <Term,Docs in which the term is found>
-	HashMap<String,HashMap<Integer,MutableInt>> index2;//HashMap <Term,HashMap<Document,Frequency in Document>>
+
+	HashMap<String,HashMap<Integer,MutableInt>> index;//HashMap <Term,HashMap<Document,Frequency in Document>>
 	public InvertedIndex()
 	{
 		index=new HashMap<>();
-		index2=new HashMap<>();		
 	}
 	//Merge 2 HashMaps, Return Merged HashMap
 	public HashMap<String,Set<Integer>> merge(HashMap<String,Set<Integer>> map1,HashMap<String,Set<Integer>> map2)
@@ -36,25 +35,11 @@ public class InvertedIndex
 	
 	public void put(String word,int docId) 
 	{
-		
-		Set<Integer> docs=new HashSet<>();
-		Set<Integer> indexDocs=index.get(word);
-		if(indexDocs!=null)
-		{
-			docs=indexDocs;
-		}
-		docs.add(docId);
-		index.put(word, docs);
-		
-		
-	}
-	public void put2(String word,int docId) 
-	{
 		HashMap<Integer, MutableInt> freq = new HashMap<>();
-		HashMap<Integer, MutableInt> indexFreq = index2.get(word);
+		HashMap<Integer, MutableInt> indexFreq = index.get(word);
 		if(indexFreq!=null)
 		{
-			freq=indexFreq;
+			freq=indexFreq;//Getting the frequency of word in EACH document
 		}		
 		MutableInt count = freq.get(docId);
 		if (count == null) 
@@ -65,7 +50,7 @@ public class InvertedIndex
 		{
 		    count.increment();
 		}
-		index2.put(word, freq);
+		index.put(word, freq);
 		
 	}
 //	public HashMap<String,Set<Integer>> getHashMap()
@@ -74,7 +59,7 @@ public class InvertedIndex
 //	}
 	public HashMap<String,HashMap<Integer, MutableInt>> getHashMap()
 	{
-		return index2;
+		return index;
 	}
 }
 

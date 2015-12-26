@@ -31,7 +31,6 @@ public class Papadopo
 				ArrayList<String> words=new ArrayList<>();//All the words of the file
 				for(String word: reader.readLine().split(" "))
 				{
-					System.out.println(word);
 					words.add(processWord(word));	
 				}
 				int totalSize=words.size();
