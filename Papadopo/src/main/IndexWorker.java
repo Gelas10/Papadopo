@@ -4,6 +4,7 @@ import java.util.*;
 
 public class IndexWorker extends Thread 
 {
+	
 	ArrayList<String> words;
 	int doc;
 	InvertedIndex index;

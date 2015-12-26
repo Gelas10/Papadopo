@@ -1,10 +1,8 @@
 package main;
 
 import java.io.*;
+import java.text.DecimalFormat;
 import java.util.*;
-import java.util.Map.Entry;
-
-import main.InvertedIndex.MutableInt;
 
 public class Papadopo 
 {
@@ -15,11 +13,13 @@ public class Papadopo
 	public static void main(String[] args) 
 	{
 		long before=System.nanoTime();
-		int cores = Runtime.getRuntime().availableProcessors()-3;
-		System.out.println(cores);
-//		Epic stack overflow answer:
-//		If cores is less than one, either your processor is about to die, 
-//		or your JVM has a serious bug in it, or the universe is about to blow up.
+		int cores = Runtime.getRuntime().availableProcessors();
+		System.out.println("Number of cores: "+cores);
+		
+		//Epic stack overflow answer:
+		//If cores is less than one, either your processor is about to die, 
+		//or your JVM has a serious bug in it, or the universe is about to blow up.
+		
 		InvertedIndex index=new InvertedIndex();
 		IndexWorker[] workers=new IndexWorker[cores];//Create as many threads as there are cores
 		boolean finished=false;
@@ -52,29 +52,21 @@ public class Papadopo
 				
 				for (IndexWorker worker : workers) if(worker.isAlive()) worker.join();//Wait for threads to stop
 				docID++;
-			} catch (IOException e) 
-			{
+			} catch (FileNotFoundException e){
+				System.out.println("No more files.");
 				finished=true;
-			} catch (InterruptedException e) 
-			{
+			} catch (IOException e){
+				System.out.println("IOException while trying to read a line or close a file.");
+				finished=true;
+			} catch (InterruptedException e){
 				e.printStackTrace();
 			} 
 			
 		}while(!finished);
 		
-		//Testing contents of Index
-		for (Map.Entry<String, HashMap<Integer, MutableInt>> e : index.getHashMap().entrySet())
-		{
-			System.out.println("Word: "+e.getKey());
-			HashMap<Integer, MutableInt> df=e.getValue();
-			for (Entry<Integer, MutableInt> docFreq : df.entrySet()) 
-			{
-				System.out.println("In Document: "+docFreq.getKey()+" Frequency= "+docFreq.getValue().get());
-				
-			}
-			
-		}
-		System.out.println("Time= "+(System.nanoTime()-before));//Time= 33784762 ,34195468, 33424055
+		index.printIndex();
+
+		System.out.println("Time= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//Time= 33784762 ,34195468, 33424055
 	}
 
 }
