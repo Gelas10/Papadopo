@@ -35,7 +35,7 @@ public class InvertedIndex
 		return map1;//Return the updated map1 ( merged with map 2 )
 	}
 	
-	public void put(String word,int docId) 
+	public synchronized void put(String word,int docId) 
 	{
 		HashMap<Integer, MutableInt> freq = new HashMap<>();
 		HashMap<Integer, MutableInt> indexFreq = index.get(word);

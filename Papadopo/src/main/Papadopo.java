@@ -27,12 +27,15 @@ public class Papadopo
 		do
 		{
 			String filename=docID+".txt";// Reading files named [id].txt ( example : 1.txt )
-			try (BufferedReader reader=new BufferedReader(new FileReader(filename)))
+			try (Scanner scanner=new Scanner(new File(filename)))
 			{
+//				String line;
 				ArrayList<String> words=new ArrayList<>();//All the words of the file
-				for(String word: reader.readLine().split(" "))
+				while(scanner.hasNext())
 				{
-					words.add(processWord(word));	
+					String word=processWord(scanner.next());
+					words.add(word);
+					System.out.println(word);
 				}
 				int totalSize=words.size();
 				int portion=totalSize/cores;
