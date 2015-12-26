@@ -4,27 +4,43 @@ import java.util.*;
 
 public class InvertedIndex 
 {
-	HashMap<String,ArrayList<Integer>> index;//HashMap <Term,Docs in which the term is found>
+	HashMap<String,Set<Integer>> index;//HashMap <Term,Docs in which the term is found>
 	public InvertedIndex()
 	{
 		index=new HashMap<>();
 	}
 	//Merge 2 HashMaps, Return Merged HashMap
-	public HashMap<String,ArrayList<Integer>> merge(HashMap<String,ArrayList<Integer>> map1,HashMap<String,ArrayList<Integer>> map2)
+	public HashMap<String,Set<Integer>> merge(HashMap<String,Set<Integer>> map1,HashMap<String,Set<Integer>> map2)
 	{
-		for (Map.Entry<String, ArrayList<Integer>> e : map2.entrySet())//For each entry<Term,Documents> in map2
+		for (Map.Entry<String, Set<Integer>> e : map2.entrySet())//For each entry<Term,Documents> in map2
 		{
-			ArrayList<Integer> map1Values=map1.get(e.getKey());//Get the Documents of map1 for this Term 
+			Set<Integer> map1Values=map1.get(e.getKey());//Get the Documents of map1 for this Term 
 			if(map1Values!=null)//If there are Documents in map1 for this Term
 			{
 				for (Integer docID : e.getValue()) //For each document in map2's entry
-					if(!map1Values.contains(docID)) //We do NOT want duplicates
 						map1Values.add(docID);//Add it to the documents of map1
 				map1.put(e.getKey(),map1Values);//Replace the Documents of Term in map1 with the merged Documents
 			}
 			else map1.put(e.getKey(), e.getValue());//If there were no documents in map1 for this Term: Simply put Documents of map2's entry
 		}
 		return map1;//Return the updated map1 ( merged with map 2 )
+	}
+	
+	public synchronized void put(String word,int docId) 
+	{
+		Set<Integer> docs=new HashSet<>();
+		Set<Integer> indexDocs=index.get(word);
+		if(indexDocs!=null)
+		{
+			docs=indexDocs;
+		}
+		docs.add(docId);
+		index.put(word, docs);
+	}
+	
+	public HashMap<String,Set<Integer>> getHashMap()
+	{
+		return index;
 	}
 }
 

@@ -16,7 +16,7 @@ public class Papadopo
 //		Epic stack overflow answer:
 //		If cores is less than one, either your processor is about to die, 
 //		or your JVM has a serious bug in it, or the universe is about to blow up.
-		
+		InvertedIndex index=new InvertedIndex();
 		IndexWorker[] workers=new IndexWorker[cores];//Create as many threads as there are cores
 		boolean finished=false;
 		int docID=1;		
@@ -41,7 +41,7 @@ public class Papadopo
 					
 					//Give equal number of words to each thread
 					ArrayList<String> cut=new ArrayList<>( words.subList(start, ( (totalSize<end) ? totalSize : end )) );
-					workers[i]=new IndexWorker(cut);//Initialize thread
+					workers[i]=new IndexWorker(cut,docID,index);//Initialize thread ( passing words, document id, and the index )
 					workers[i].start();
 					start=end;
 					end+=portion;
@@ -59,7 +59,15 @@ public class Papadopo
 			
 		}while(!finished);
 		
-		
+		//Testing contents of Index
+		for (Map.Entry<String, Set<Integer>> e : index.getHashMap().entrySet())
+		{
+			System.out.println("Word: "+e.getKey());
+			for (Integer integer : e.getValue()) 
+			{
+				System.out.println("In Document: "+integer);
+			}
+		}
 	}
 
 }
