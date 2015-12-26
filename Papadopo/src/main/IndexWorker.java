@@ -1,6 +1,6 @@
 package main;
 
-import java.util.ArrayList;
+import java.util.*;
 
 public class IndexWorker extends Thread 
 {
@@ -19,7 +19,7 @@ public class IndexWorker extends Thread
 		for (String word : words) 
 		{
 //			System.out.println(word);
-			index.put(word,doc);			
+			index.put2(word,doc);
 		}
 		
 	}

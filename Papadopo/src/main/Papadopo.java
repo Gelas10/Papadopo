@@ -2,6 +2,9 @@ package main;
 
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
+
+import main.InvertedIndex.MutableInt;
 
 public class Papadopo 
 {
@@ -26,9 +29,9 @@ public class Papadopo
 			try (BufferedReader reader=new BufferedReader(new FileReader(filename)))
 			{
 				ArrayList<String> words=new ArrayList<>();//All the words of the file
-				System.out.println(docID+")");
 				for(String word: reader.readLine().split(" "))
 				{
+					System.out.println(word);
 					words.add(processWord(word));	
 				}
 				int totalSize=words.size();
@@ -60,14 +63,18 @@ public class Papadopo
 		}while(!finished);
 		
 		//Testing contents of Index
-		for (Map.Entry<String, Set<Integer>> e : index.getHashMap().entrySet())
+		for (Map.Entry<String, HashMap<Integer, MutableInt>> e : index.getHashMap().entrySet())
 		{
 			System.out.println("Word: "+e.getKey());
-			for (Integer integer : e.getValue()) 
+			HashMap<Integer, MutableInt> df=e.getValue();
+			for (Entry<Integer, MutableInt> docFreq : df.entrySet()) 
 			{
-				System.out.println("In Document: "+integer);
+				System.out.println("In Document: "+docFreq.getKey()+" Frequency= "+docFreq.getValue().get());
+				
 			}
+			
 		}
+		System.out.println("Docs= "+docID);
 	}
 
 }
