@@ -1,21 +1,14 @@
 package main;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 public class InvertedIndex 
 {	
-	public class MutableInt 
-	{
-		  int value = 1; // note that we start at 1 since we're counting
-		  public synchronized void increment(){ ++value; }
-		  public int get (){ return value; }
-	}
-
-	private HashMap<String,HashMap<Integer,MutableInt>> index;//HashMap <Term,HashMap<Document,Frequency in Document>>
 	
+
+	HashMap<String,HashMap<Integer,MutableInt>> index;//HashMap <Term,HashMap<Document,Frequency in Document>>
 	public InvertedIndex()
-	{	
+	{
 		index=new HashMap<>();
 	}
 	//Merge 2 HashMaps, Return Merged HashMap
@@ -37,12 +30,15 @@ public class InvertedIndex
 	
 	public synchronized void put(String word,int docId) 
 	{
+//		System.out.println("Put");
 		HashMap<Integer, MutableInt> freq = new HashMap<>();
 		HashMap<Integer, MutableInt> indexFreq = index.get(word);
+		
 		if(indexFreq!=null)
 		{
 			freq=indexFreq;//Getting the frequency of word in EACH document
 		}		
+		
 		MutableInt count = freq.get(docId);
 		if (count == null) 
 		{
@@ -55,27 +51,16 @@ public class InvertedIndex
 		index.put(word, freq);
 		
 	}
-
+//	public HashMap<String,Set<Integer>> getHashMap()
+//	{
+//		return index;
+//	}
 	public HashMap<String,HashMap<Integer, MutableInt>> getHashMap()
 	{
 		return index;
 	}
-	
-	public void printIndex(){
-		
-		for (Map.Entry<String, HashMap<Integer, MutableInt>> e : getHashMap().entrySet()){
-			
-			System.out.println("Word: "+e.getKey());
-			HashMap<Integer, MutableInt> df=e.getValue();
-			for (Entry<Integer, MutableInt> docFreq : df.entrySet()){
-				
-				System.out.println("In Document: "+docFreq.getKey()+" Frequency= "+docFreq.getValue().get());
-			}
-		}
-	}
 }
 
-//We should remove this!
 /* Testing shiat
 	ArrayList<Integer> ar1=new ArrayList<>();
 	ar1.add(1);
