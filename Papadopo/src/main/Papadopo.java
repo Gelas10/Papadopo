@@ -24,18 +24,22 @@ public class Papadopo
 			e.printStackTrace();
 		}
 	}
-	
-	private static ArrayList<String> sortFromFile(String filename)
+	/**
+	 * Sorts records in given filename using given totalLines of memory
+	 * @param filename	name of the file in which there are unordered records: term,document,frequency
+	 * @param totalLines number of total lines that can be used for sorting
+	 * @return An ArrayList<String> with the filenames of the sorted segments
+	 */
+	private static ArrayList<String> sortFromFile(String filename,int totalLines)
 	{
 		ArrayList<String> filenames=new ArrayList<>();
 		String pattern="sorted";
 		int fileNumber=0;
-		int totalLines=10;
+		
 		ArrayList<Record> records=new ArrayList<>();
 		try(BufferedReader reader=new BufferedReader(new FileReader(filename)))
 		{
 			String line;
-			String[] tokens=new String[3];
 			int count=0;
 			while((line=reader.readLine())!=null)
 			{
@@ -68,11 +72,7 @@ public class Papadopo
 	
 	private static void mergeSortFiles(ArrayList<String> filenames) throws IOException, InterruptedException
 	{
-		boolean fackedup=false;
-		boolean finished=false;
-		int fackedi=-1;
 		ArrayList<String> nextFilenames=new ArrayList<>();
-		int cores=Runtime.getRuntime().availableProcessors();
 		
 		int totalFiles;
 		MergeThread[] mergers;
@@ -85,53 +85,6 @@ public class Papadopo
 			System.out.println(name);
 			
 		}
-//		while(!filenames.isEmpty())
-//		{
-//			for (int i = 0; i < mergers.length; i++) 
-//			{
-//				String file1;
-//				String file2;
-//				String mergedFile=outfile+count+".txt";;
-//				if(filenames.isEmpty())
-//					break;
-//				else if(filenames.size()>1)
-//				{
-//					file1=filenames.get(0);
-//					filenames.remove(0);
-//					file2=filenames.get(0);
-//					filenames.remove(0);
-//					mergedFile=outfile+count+".txt";
-//					mergers[i]=new MergeThread(file1,file2,mergedFile);
-//					mergers[i].start();
-//				}
-//				else if(filenames.size()==1)
-//				{
-//					mergedFile=filenames.get(0);
-//					filenames.remove(0);
-//				}
-//				
-//				nextFilenames.add(mergedFile);
-//				++count;
-//			}
-//			for(int i=0 ; i<mergers.length; i++)
-//			{
-//				if(mergers[i]!=null)
-//					if(mergers[i].isAlive())
-//						mergers[i].join();
-//			}
-//			if(filenames.isEmpty())
-//			{
-//				if(nextFilenames.size()>1)
-//				{
-//					filenames=new ArrayList<>(nextFilenames);
-//				}
-//				else if (nextFilenames.size()==1)
-//				{
-//					
-//				}
-//			}
-//		}
-//		System.out.println("Count "+count);
 		do
 		{
 			totalFiles=filenames.size();
@@ -146,12 +99,6 @@ public class Papadopo
 			
 			for (int i = 0; i < mergers.length; i++) 
 			{
-//				System.out.println(totalFiles+" Total Files inside "+filenames.size());
-				
-//				for (String filename : filenames) 
-//				{
-//					System.out.println(filename);
-//				}
 				if(filenames.size()>1)
 				{
 					String file1=filenames.get(0);
@@ -166,14 +113,6 @@ public class Papadopo
 				}
 				else if (filenames.size()>0)
 				{
-					
-//					new File(filenames.get(0)).renameTo(new File(outfile+count+".txt"));
-//					System.out.println("ELSE");
-//					filenames.remove(0);
-//					nextFilenames.add(outfile+count+".txt");
-//					fackedup=true;
-//					fackedi=i;
-//					++count;
 					if(i>0)
 					{
 						
@@ -186,63 +125,29 @@ public class Papadopo
 						mergers[i]=new MergeThread(filenames.get(0),null,outfile+count+".txt");
 						mergers[i].start();
 						filenames.remove(0);
-						
-//						System.out.println(outfile+count+".txt");
-//						System.out.println("BB");
 						nextFilenames.add(outfile+count+".txt");
 						++count;
 					}
-					
-					
-					
 				}
-				else
-				{
-					
-				}
-				
 			}
-//			for (int i = 0; i < totalFiles; i+=2) 
-//			{
-//				
-//				if(i+1<totalFiles)
-//				{
-//					mergers[threadCount]=new MergeThread(filenames.get(i),(i+1>=totalFiles) ? null:filenames.get(i+1),outfile+count+".txt");				
-//					mergers[threadCount].start();
-////					filenames.get(i)=outfile+count+".txt";
-//					nextFilenames.add(outfile+count+".txt");
-//					++threadCount;
-//					++count;
-//				}
-//				else
-//				{
-//					System.out.println("hI");
-//				}
-//				
-//			}
 			for (int i = 0; i < mergers.length; i++) 
 			{
 				if(mergers[i]!=null)
 				if(mergers[i].isAlive())
 					mergers[i].join();
 			}
-//			filenames.clear();
-//			filenames=nextFilenames;
 			if(nextFilenames.size()>1)
 				filenames=new ArrayList<>(nextFilenames);
 		}while(filenames.size()>1);
-		//new File(filenames.get(0)).renameTo(new File("Final.txt"));
-//		System.out.println(filenames.size());
-//		merge2Files(filenames[0],filenames[1]);
-		if(fackedup)System.out.println("FACKED UP"+fackedi);
+		new File(nextFilenames.get(0)).renameTo(new File("Final.txt"));
 		
 	}
 	
 	
 	public static void main(String[] args) throws InterruptedException 
 	{
-		String output="records.txt";
-		new File(output).delete();
+		String unorderedRecords="records.txt";
+		new File(unorderedRecords).delete();
 		
 		long before=System.nanoTime();
 		int cores = Runtime.getRuntime().availableProcessors();
@@ -317,18 +222,28 @@ public class Papadopo
 		}while(!finished);
 		
 		System.out.println("TimeBeforeSort= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
-		
+		//Sorting while using limited number of lines in memory
+		int totalLines=100;
 		ArrayList<String> files=new ArrayList<>();
-		files=sortFromFile(output);
-		try {
+		files=sortFromFile(unorderedRecords,totalLines);
+		try 
+		{
 			mergeSortFiles(files);
-		} catch (IOException e) {
+		} catch (IOException e) 
+		{
 			// TODO Auto-generated catch block
 			System.out.println("caught");
 			e.printStackTrace();
 		}
 		//		Collections.sort(records);
 		//Records are sorted , time to build the index using threads
+		try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream("s")))
+		{
+			// TODO build index using totalLines of memory and store segments to disk 
+		} 
+		catch (FileNotFoundException e) {e.printStackTrace();}
+		catch (IOException e) {e.printStackTrace();}
+		
 		BuilderThread[] builders=new BuilderThread[cores];
 		int totalSize=records.size();
 		int portion=totalSize/cores;
