@@ -30,7 +30,7 @@ public class Papadopo
 		ArrayList<String> filenames=new ArrayList<>();
 		String pattern="sorted";
 		int fileNumber=0;
-		int totalLines=50;
+		int totalLines=10;
 		ArrayList<Record> records=new ArrayList<>();
 		try(BufferedReader reader=new BufferedReader(new FileReader(filename)))
 		{
@@ -76,79 +76,97 @@ public class Papadopo
 		
 		int totalFiles;
 		MergeThread[] mergers;
-		mergers=new MergeThread[cores];
+		mergers=new MergeThread[(filenames.size()/2)+1];
+		
 		String outfile="merged";
 		int count=0;
-		while(!filenames.isEmpty())
+		for (String name:filenames)
 		{
-			for (int i = 0; i < mergers.length; i++) 
-			{
-				if(filenames.isEmpty())
-					break;
-				String file1=filenames.get(0);
-				String file2=(filenames.size()<2)? null:filenames.get(1);
-				String mergedFile=outfile+count+".txt";
-				mergers[i]=new MergeThread(file1,file2,mergedFile);
-				mergers[i].start();
-				filenames.remove(0);
-				if(!filenames.isEmpty())
-					filenames.remove(0);
-				nextFilenames.add(mergedFile);
-				++count;
-			}
-			for(int i=0 ; i<mergers.length; i++)
-			{
-				if(mergers[i]!=null)
-					if(mergers[i].isAlive())
-						mergers[i].join();
-			}
-			if(filenames.isEmpty())
-			{
-				if(nextFilenames.size()>1)
-				{
-					filenames=new ArrayList<>(nextFilenames);
-				}
-				else if (nextFilenames.size()==1)
-				{
-					
-				}
-			}
+			System.out.println(name);
+			
 		}
-//		do
+//		while(!filenames.isEmpty())
 //		{
-//			totalFiles=filenames.size();
-//			System.out.println(totalFiles+" Total Files "+filenames.size());
-////			if(totalFiles % 2!=0)
-////				mergers=new MergeThread[totalFiles/2+1];
-////			else
-////				mergers=new MergeThread[totalFiles/2];
-//
-////			nextFilenames.clear();
-//			
-//			
 //			for (int i = 0; i < mergers.length; i++) 
 //			{
-////				System.out.println(totalFiles+" Total Files inside "+filenames.size());
-//				
-////				for (String filename : filenames) 
-////				{
-////					System.out.println(filename);
-////				}
-//				if(filenames.size()>1)
+//				String file1;
+//				String file2;
+//				String mergedFile=outfile+count+".txt";;
+//				if(filenames.isEmpty())
+//					break;
+//				else if(filenames.size()>1)
 //				{
-//					String file1=filenames.get(0);
-//					String file2=filenames.get(1);
-//					String mergedFile=outfile+count+".txt";
+//					file1=filenames.get(0);
+//					filenames.remove(0);
+//					file2=filenames.get(0);
+//					filenames.remove(0);
+//					mergedFile=outfile+count+".txt";
 //					mergers[i]=new MergeThread(file1,file2,mergedFile);
 //					mergers[i].start();
-//					filenames.remove(0);
-//					filenames.remove(0);
-//					nextFilenames.add(mergedFile);
-//					++count;
 //				}
-//				else if (filenames.size()>0)
+//				else if(filenames.size()==1)
+//				{
+//					mergedFile=filenames.get(0);
+//					filenames.remove(0);
+//				}
+//				
+//				nextFilenames.add(mergedFile);
+//				++count;
+//			}
+//			for(int i=0 ; i<mergers.length; i++)
+//			{
+//				if(mergers[i]!=null)
+//					if(mergers[i].isAlive())
+//						mergers[i].join();
+//			}
+//			if(filenames.isEmpty())
+//			{
+//				if(nextFilenames.size()>1)
+//				{
+//					filenames=new ArrayList<>(nextFilenames);
+//				}
+//				else if (nextFilenames.size()==1)
 //				{
 //					
+//				}
+//			}
+//		}
+//		System.out.println("Count "+count);
+		do
+		{
+			totalFiles=filenames.size();
+			System.out.println(totalFiles+" Total Files "+filenames.size());
+//			if(totalFiles % 2!=0)
+//				mergers=new MergeThread[totalFiles/2+1];
+//			else
+//				mergers=new MergeThread[totalFiles/2];
+
+			nextFilenames.clear();
+			
+			
+			for (int i = 0; i < mergers.length; i++) 
+			{
+//				System.out.println(totalFiles+" Total Files inside "+filenames.size());
+				
+//				for (String filename : filenames) 
+//				{
+//					System.out.println(filename);
+//				}
+				if(filenames.size()>1)
+				{
+					String file1=filenames.get(0);
+					String file2=filenames.get(1);
+					String mergedFile=outfile+count+".txt";
+					mergers[i]=new MergeThread(file1,file2,mergedFile);
+					mergers[i].start();
+					filenames.remove(0);
+					filenames.remove(0);
+					nextFilenames.add(mergedFile);
+					++count;
+				}
+				else if (filenames.size()>0)
+				{
+					
 //					new File(filenames.get(0)).renameTo(new File(outfile+count+".txt"));
 //					System.out.println("ELSE");
 //					filenames.remove(0);
@@ -156,62 +174,63 @@ public class Papadopo
 //					fackedup=true;
 //					fackedi=i;
 //					++count;
-//					if(i>0)
-//					{
-//						
-////						for(int j=0;j<i;j++)
-////						{
-////							if(mergers[j]!=null)
-////								if(mergers[j].isAlive())
-////									mergers[j].join();
-////						}
-//						mergers[i]=new MergeThread(filenames.get(0),null,outfile+count+".txt");
-//						mergers[i].start();
-//						filenames.remove(0);
-//						
-////						System.out.println(outfile+count+".txt");
-////						System.out.println("BB");
-////						nextFilenames.add(outfile+count+".txt");
-//						
-//					}
-//					
-//					
-//					
+					if(i>0)
+					{
+						
+//						for(int j=0;j<i;j++)
+//						{
+//							if(mergers[j]!=null)
+//								if(mergers[j].isAlive())
+//									mergers[j].join();
+//						}
+						mergers[i]=new MergeThread(filenames.get(0),null,outfile+count+".txt");
+						mergers[i].start();
+						filenames.remove(0);
+						
+//						System.out.println(outfile+count+".txt");
+//						System.out.println("BB");
+						nextFilenames.add(outfile+count+".txt");
+						++count;
+					}
+					
+					
+					
+				}
+				else
+				{
+					
+				}
+				
+			}
+//			for (int i = 0; i < totalFiles; i+=2) 
+//			{
+//				
+//				if(i+1<totalFiles)
+//				{
+//					mergers[threadCount]=new MergeThread(filenames.get(i),(i+1>=totalFiles) ? null:filenames.get(i+1),outfile+count+".txt");				
+//					mergers[threadCount].start();
+////					filenames.get(i)=outfile+count+".txt";
+//					nextFilenames.add(outfile+count+".txt");
+//					++threadCount;
+//					++count;
 //				}
 //				else
 //				{
-//					
+//					System.out.println("hI");
 //				}
 //				
 //			}
-////			for (int i = 0; i < totalFiles; i+=2) 
-////			{
-////				
-////				if(i+1<totalFiles)
-////				{
-////					mergers[threadCount]=new MergeThread(filenames.get(i),(i+1>=totalFiles) ? null:filenames.get(i+1),outfile+count+".txt");				
-////					mergers[threadCount].start();
-//////					filenames.get(i)=outfile+count+".txt";
-////					nextFilenames.add(outfile+count+".txt");
-////					++threadCount;
-////					++count;
-////				}
-////				else
-////				{
-////					System.out.println("hI");
-////				}
-////				
-////			}
-//			for (int i = 0; i < mergers.length; i++) 
-//			{
-//				if(mergers[i]!=null)
-//				if(mergers[i].isAlive())
-//					mergers[i].join();
-//			}
-////			filenames.clear();
-////			filenames=nextFilenames;
-//			filenames=new ArrayList<>(nextFilenames);
-//		}while(filenames.size()>1);
+			for (int i = 0; i < mergers.length; i++) 
+			{
+				if(mergers[i]!=null)
+				if(mergers[i].isAlive())
+					mergers[i].join();
+			}
+//			filenames.clear();
+//			filenames=nextFilenames;
+			if(nextFilenames.size()>1)
+				filenames=new ArrayList<>(nextFilenames);
+		}while(filenames.size()>1);
 		//new File(filenames.get(0)).renameTo(new File("Final.txt"));
 //		System.out.println(filenames.size());
 //		merge2Files(filenames[0],filenames[1]);

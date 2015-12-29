@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-
+import java.nio.*;
 public class MergeThread extends Thread
 {
 	String file1;
@@ -91,9 +91,12 @@ public class MergeThread extends Thread
 						
 						} 
 					}
-				}catch (IOException e) {e.printStackTrace();}
+				}catch (IOException e) 
+				{
+					e.printStackTrace();
+				}
 			}
-			else
+			else if (file1!=null)
 			{
 				new File(file1).renameTo(new File(output));
 				System.out.println("renamed");
