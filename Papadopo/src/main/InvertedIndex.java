@@ -7,17 +7,21 @@ public class InvertedIndex
 {	
 	public class MutableInt 
 	{
-		  int value = 1; // note that we start at 1 since we're counting
+		  private int value;
+		  public MutableInt(int avalue){value = avalue;}
+		  public MutableInt(){value = 1;}// note that we start at 1 since we're counting
 		  public synchronized void increment(){ ++value; }
 		  public int get (){ return value; }
 	}
 
 	private HashMap<String,HashMap<Integer,MutableInt>> index;//HashMap <Term,HashMap<Document,Frequency in Document>>
+	private int documents;
 	
 	public InvertedIndex()
 	{	
 		index=new HashMap<>();
 	}
+	
 	//Merge 2 HashMaps, Return Merged HashMap
 	public HashMap<String,Set<Integer>> merge(HashMap<String,Set<Integer>> map1,HashMap<String,Set<Integer>> map2)
 	{
@@ -35,7 +39,7 @@ public class InvertedIndex
 		return map1;//Return the updated map1 ( merged with map 2 )
 	}
 	
-	public synchronized void put(String word,int docId) 
+	public void put(String word,int docId) 
 	{
 		HashMap<Integer, MutableInt> freq = new HashMap<>();
 		HashMap<Integer, MutableInt> indexFreq = index.get(word);
