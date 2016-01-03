@@ -109,16 +109,17 @@ public class QueryProcessor {
 		//{query,doc0,doc1,doc2,...}
 		String docs[] = {
 			"ant bee goat chair melon",
+			
 			"ant ant bee cat dog dog dog elephant fox goat apple room",
 			"apple apple apple apple orange banana banana banana melon peach grape pineapple dog room",
 			"room chair sofa window desk table bed bed dog ant"
 		};
 		
-		int documents = docs.length;
+		int documents = docs.length-1;
 		InvertedIndex invIndex = new InvertedIndex();
-		double norms[] = new double[documents];
+		double norms[] = new double[documents+1];
 		
-		//Read each document and insert it's words into the index
+		//Read each document (and the query) and insert it's words into the index
 		for(int i=0;i<docs.length;i++){
 			StringTokenizer tok = new StringTokenizer(docs[i]);
 			while(tok.hasMoreTokens()){
@@ -132,7 +133,7 @@ public class QueryProcessor {
 		
 		//Each doc has a vector (in the form of HashMap). For example doc1's vector is not doc1=[0 0 0.23 0.78 0.64 0 0] but a HashMap with the term as the key and the weight as the value. 
 		ArrayList<HashMap<String,Double>> weights = new ArrayList<HashMap<String,Double>>();
-		for(int i=0;i<documents;i++){
+		for(int i=0;i<documents+1;i++){
 			weights.add(new HashMap<String,Double>());
 		}
 		//TODO Consider this vector [0 0 0.23 0.78 0.64 0 0]. It means that the first word "apple" (for example) has weight 0, the second "book" (for example) has 0, ...
@@ -156,7 +157,11 @@ public class QueryProcessor {
 		
 		
 		
-		//STEP 2)Compute weights   (Only for the words that appear in the query)
+		//STEP 2)Compute weights (Only for the words that appear in the query)
+		
+		System.out.println("================================================================================================================================"); 
+		System.out.println("Computing vector weights for each document. (a vector contains weights only for words that appear in the QUERY and DOCUMENT) ...");
+		System.out.println("The following \"weight\" data ARE ALL STORED!");
 		
 		//For each query term
 		for(int i=0;i<query.length;i++){
@@ -164,13 +169,16 @@ public class QueryProcessor {
 			HashMap<Integer,MutableInt> docsMap = index.get(query[i]);
 			
 			//idf = ln(1+N/nt)  ,  N:#documents, nt:#documentsWhereTermAppears
-			double idf = Math.log( 1 + documents/(double)docsMap.size());
+			
+			double idf = Math.log( 1 + documents/((double)docsMap.size()-1));
+			System.out.println("\nqueryWord:"+query[i]+" => idf = ln(1+"+documents+"/"+(docsMap.size()-1)+") = "+idf);
 			
 			//For each document with this term
 			for (Entry<Integer, MutableInt> doc : docsMap.entrySet()){
 				
 				//tf = 1+ln(freq)    ,  freq:frequency of term inside this document
 				double tf = 1 + Math.log(doc.getValue().get());
+				System.out.println("tf = 1+ln("+doc.getValue().get()+") = "+tf);
 				
 				HashMap<String,Double> vector;
 				try{
@@ -179,8 +187,12 @@ public class QueryProcessor {
 					
 					//This word exists in the "vector"
 					if(vector.containsKey(query[i])){
+
+						System.out.println("weightInDoc"+doc.getKey()+"("+query[i]+") += "+tf+"*"+idf+" = "+(tf*idf));
 						vector.put(query[i], vector.get(query[i])+(tf*idf) );
 					}else{
+						
+						System.out.println("weightInDoc"+doc.getKey()+"("+query[i]+") = "+tf+"*"+idf+" = "+(tf*idf));
 						vector.put(query[i], tf*idf );
 					}
 					
@@ -197,36 +209,79 @@ public class QueryProcessor {
 				}													//</DEAD CODE>
 			}
 		}
+				
+		//STEP 3) Compute vector norms (norm considers all words of a document)
 		
-		//STEP 3) Compute vector norms
-		for(int i=0;i<weights.size();i++){
+		System.out.println("\n\n\n================================================================================================================================");
+		System.out.println("Computing vector norm for each document. (a norm is computed using the weight of ALL words of the document, not only the words that appear in the document and the query) ..."); 
+		System.out.println("The following \"tf\" and \"idf\" data ARE NOT STORED!(just printed, they are only used to compute norm.)\n");
+		
+		//For each document (including the query)
+		for(int i=0;i<docs.length;i++){
 			
-			HashMap<String,Double> vector = weights.get(i);
 			norms[i] = 0;
-			for (Entry<String, Double> weight : vector.entrySet()){
-				norms[i] += Math.pow(weight.getValue(), 2);
+			
+			HashSet<String> uniqueWordsInDocument = new HashSet<String>();
+			
+			//Get unique words of document 
+			StringTokenizer tok = new StringTokenizer(docs[i]);
+			while(tok.hasMoreTokens()){
+				String word = tok.nextToken();
+				
+				uniqueWordsInDocument.add(word);
 			}
+			
+			//For each unique word
+			Iterator<String> words = uniqueWordsInDocument.iterator();
+			while(words.hasNext()){
+				String word = words.next();
+				
+				//Compute weight
+				int f = index.get(word).get(i).get();
+				double tf = 1+Math.log(f);
+				int nt;
+						//nt is how many DOCUMENTS contain this word. So if we see that 3 documents contain this word but one of them is the query, then 2 documents really contain the word. 
+						if(index.get(word).keySet().contains(0)){
+							nt = index.get(word).keySet().size()-1;
+						}else{
+							nt = index.get(word).keySet().size();
+						}
+				
+				double idf = Math.log(1+(double)documents/(double)nt );
+				
+				System.out.println("doc"+i+" "+word+" [tf:1+ln("+f+") = "+tf+"] , [idf:ln(1+"+documents+"/"+nt+") = "+idf+"]");
+				
+				norms[i] += Math.pow(tf*idf, 2);
+			}
+			
+			
 			norms[i] = Math.sqrt(norms[i]);
-			//System.out.println("norm("+i+"): "+norms[i]);
+			System.out.println("norm("+i+"): "+norms[i]+"\n-------------------------------------------------------------------------");
 		}
 		
 		
 		//STEP 4)Compute similarity
+		
+		System.out.println("\n\n\n================================================================================================================================");
+		System.out.println("Computing similarity ...\n");
+		
 		double similarity[] = new double[docs.length-1];
 		
 		HashMap<String,Double> queryVector = weights.get(0);
 		
 		//For each document
 		Iterator<HashMap<String,Double>> docWeights = weights.iterator();
+		
 		docWeights.next();//The first document is the query so ignore it.
-		int i=0;
+		
+		int i=1;
 		while(docWeights.hasNext()){
 			
 			HashMap<String,Double> vector = docWeights.next();
 			
-			System.out.println("vectorOf(doc"+(i+1)+"): "+vector);
+			System.out.println("vectorOf(doc"+i+"): "+vector);
 			
-			similarity[i]=0;
+			similarity[i-1]=0;
 			
 			//For each query term
 			for (Entry<String, Double> wordEntry : queryVector.entrySet()){
@@ -239,15 +294,18 @@ public class QueryProcessor {
 					double w_doc = vector.get(word);
 					double w_que = queryVector.get(word);
 					
-					similarity[i] += w_doc*w_que;
+					System.out.println("For the word: "+word+" => sim(doc"+i+") += weightInDoc("+word+")*weightInQuer("+word+") that is "+w_doc+"*"+w_que+" = "+(w_doc*w_que));
+					
+					similarity[i-1] += w_doc*w_que;
 				}
 			}
 			
-			similarity[i] /= norms[i]*norms[0];
+			similarity[i-1] /= norms[i]*norms[0];
+			System.out.println("divideBy:"+norms[i]+"*"+norms[0]+"="+(norms[i]*norms[0])+"\n");
 			i++;
 		}
 		
-		for(int j=1;j<documents;j++){
+		for(int j=1;j<documents+1;j++){
 			System.out.println("similarity(query,doc"+j+"): "+similarity[j-1]);
 		}		
 		
