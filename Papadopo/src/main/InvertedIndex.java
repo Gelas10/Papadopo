@@ -1,6 +1,11 @@
 package main;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.*;
+import java.util.Map.Entry;
 
 public class InvertedIndex 
 {	
@@ -10,24 +15,27 @@ public class InvertedIndex
 	public InvertedIndex()
 	{
 		index=new HashMap<>();
-	}
-	//Merge 2 HashMaps, Return Merged HashMap
-	public HashMap<String,Set<Integer>> merge(HashMap<String,Set<Integer>> map1,HashMap<String,Set<Integer>> map2)
+	}	
+	public InvertedIndex(HashMap<String,HashMap<Integer,MutableInt>> hashmap)
 	{
-		for (Map.Entry<String, Set<Integer>> e : map2.entrySet())//For each entry<Term,Documents> in map2
-		{
-			Set<Integer> map1Values=map1.get(e.getKey());//Get the Documents of map1 for this Term 
-			if(map1Values!=null)//If there are Documents in map1 for this Term
-			{
-				for (Integer docID : e.getValue()) //For each document in map2's entry
-						map1Values.add(docID);//Add it to the documents of map1
-				map1.put(e.getKey(),map1Values);//Replace the Documents of Term in map1 with the merged Documents
-			}
-			else map1.put(e.getKey(), e.getValue());//If there were no documents in map1 for this Term: Simply put Documents of map2's entry
-		}
-		return map1;//Return the updated map1 ( merged with map 2 )
+		index=hashmap;
 	}
-	
+	public InvertedIndex(String filename)
+	{
+		try(ObjectInputStream in=new ObjectInputStream(new FileInputStream(filename)))
+		{
+			index=(HashMap<String, HashMap<Integer, MutableInt>>) in.readObject();
+		} catch (FileNotFoundException e) 
+		{
+			e.printStackTrace();
+		} catch (IOException e) 
+		{
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	public synchronized void put(String word,int docId) 
 	{
 //		System.out.println("Put");
@@ -58,6 +66,21 @@ public class InvertedIndex
 	public HashMap<String,HashMap<Integer, MutableInt>> getHashMap()
 	{
 		return index;
+	}
+	
+public void printIndex(){
+		
+		for (Map.Entry<String, HashMap<Integer, MutableInt>> e : getHashMap().entrySet())
+		{
+			
+			System.out.println("Word: "+e.getKey());
+			HashMap<Integer, MutableInt> df=e.getValue();
+			for (Entry<Integer, MutableInt> docFreq : df.entrySet())
+			{
+				
+				System.out.println("In Document: "+docFreq.getKey()+" Frequency= "+docFreq.getValue().get());
+			}
+		}
 	}
 }
 

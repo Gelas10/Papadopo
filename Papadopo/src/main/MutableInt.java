@@ -1,8 +1,14 @@
 package main;
 
-public class MutableInt 
+import java.io.Serializable;
+
+public class MutableInt implements Serializable
 {
-	  int value;
+	  /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1869808761733034817L;
+	int value;
 	  public MutableInt()
 	  {
 		  value=1;// note that we start at 1 since we're counting
