@@ -66,22 +66,13 @@ public class QueryProcessor {
 		
 		double norm = 0;
 		HashMap<String,Double> vector = new HashMap<String,Double>();
-		
-		//Get all unique words of this document.
-		HashSet<String> uniqueWordsInDocument = new HashSet<String>();
-		 
-		StringTokenizer tok = new StringTokenizer(document);
-		while(tok.hasMoreTokens()){
-			String word = tok.nextToken();
+
+		//Read the document and for each word insert a weight to "vector" 
+		StringTokenizer words = new StringTokenizer(document);
+		while(words.hasMoreTokens()){
 			
-			uniqueWordsInDocument.add(word);
-		}
+			String word = words.nextToken();
 		
-		//For each unique word
-		Iterator<String> words = uniqueWordsInDocument.iterator();
-		while(words.hasNext()){
-			
-			String word = words.next();
 			HashMap<Integer,MutableInt> docsMap = index.getHashMap().get(word);
 			
 			int freqInThisDocument = docsMap.get(docID).get();
@@ -92,11 +83,12 @@ public class QueryProcessor {
 			double idf = Math.log( 1 + documents/(double)nt);
 			double tf = 1 + Math.log(freqInThisDocument);
 			
-			norm += Math.pow(tf*idf, 2);
-			
-			//"vector" does not contain this word because it is UNIQUE inide the document.
-			System.out.println("weightInDoc"+docID+"("+word+") = "+tf+"*"+idf+" = "+(tf*idf));
-			vector.put(word, tf*idf );
+			//Insert a weight only the first time you see this word.
+			if(!vector.containsKey(word)){
+				System.out.println("weightInDoc"+docID+"("+word+") = "+tf+"*"+idf+" = "+(tf*idf));
+				vector.put(word, tf*idf );
+				norm += Math.pow(tf*idf, 2);
+			}
 			
 		}
 		
@@ -135,33 +127,23 @@ public class QueryProcessor {
 		
 	}
 	
-	public void setQuery(String queryString){
-		
-		//Convert to array
-		ArrayList<String> q = new ArrayList<String>();
-		StringTokenizer tt = new StringTokenizer(queryString);
-		while(tt.hasMoreTokens()){
-			q.add(tt.nextToken());
-		}
-		String query[] = new String[q.size()];
-		q.toArray(query);
-		
+	public void setQuery(String queryString){	
 		
 		//Create an inverted index for the query ONLY
 		queryInvIndex = new InvertedIndex();
-		
-		for(int i=0;i<query.length;i++){
-			queryInvIndex.put(query[i], queryID);
+			
+		StringTokenizer words = new StringTokenizer(queryString);
+		while(words.hasMoreTokens()){
+			String word = words.nextToken();
+			queryInvIndex.put(word, queryID);
 		}
 		
 		//Compute the query vector and norm
-		Vector v1 = computeVector(queryString, -1 , queryInvIndex);
+		Vector v1 = computeVector(queryString, queryID , queryInvIndex);
 		queryNorm = v1.getNorm();
 		queryVector = v1.getVector();
 		
 	}
-	
-	public void setDocuments(int documents1){documents = documents1;} 
 	
 	public void makeIndexAndNorms(){
 		
