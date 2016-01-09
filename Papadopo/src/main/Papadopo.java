@@ -40,27 +40,42 @@ public class Papadopo
 		try(BufferedReader reader=new BufferedReader(new FileReader(filename)))
 		{
 			String line;
-			int count=0;
+//			int count=0;
 			while((line=reader.readLine())!=null)
 			{
-				records.add(new Record(line));				
-				++count;
-				if(count==totalLines)
+//				records.add(new Record(line));				
+//				++count;
+//				if(count==totalLines)
+//				{
+//					Collections.sort(records);
+//					filenames.add(pattern+fileNumber+".txt");
+//					writeToFile(pattern+(fileNumber++)+".txt",records,false);
+//					records.clear();
+//					count=0;
+//				}
+				try
+				{
+					records.add(new Record(line));
+				}catch(OutOfMemoryError error)
 				{
 					Collections.sort(records);
 					filenames.add(pattern+fileNumber+".txt");
 					writeToFile(pattern+(fileNumber++)+".txt",records,false);
 					records.clear();
-					count=0;
 				}
 			}
-			if(count>0)
+//			if(count>0)
+//			{
+//				Collections.sort(records);
+//				filenames.add(pattern+fileNumber+".txt");
+//				writeToFile(pattern+(fileNumber++)+".txt",records,false);
+//			}
+			if(!records.isEmpty())
 			{
 				Collections.sort(records);
 				filenames.add(pattern+fileNumber+".txt");
 				writeToFile(pattern+(fileNumber++)+".txt",records,false);
 			}
-				
 			
 		} catch (IOException e) 
 		{
@@ -156,6 +171,7 @@ public class Papadopo
 	public static void main(String[] args) throws InterruptedException, IOException 
 	{		
 		int totalLines=100000;//of memory
+		int totalNumberOfDocuments;
 		if(args.length>0)
 		{
 			try
@@ -242,7 +258,7 @@ public class Papadopo
 			} 
 			
 		}while(!finished);
-		
+		totalNumberOfDocuments=docID;
 		System.out.println("TimeBeforeSort= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
 		//Sorting while using limited number of lines in memory (totalLines)
 		
@@ -261,12 +277,13 @@ public class Papadopo
 			HashMap<Integer,MutableInt> docFreq;
 			String line=reader.readLine();
 			Record record;
+			String recTerm="";
 			do
 			{
 				try
 				{
 					record=new Record(line);
-					String recTerm=record.getTerm();
+					recTerm=record.getTerm();
 					int recDoc=record.getDocument();
 					MutableInt recFreq=record.getFrequency();
 					docFreq=index.get(recTerm);//Get Index Information for current term
@@ -296,10 +313,14 @@ public class Papadopo
 					//Write HashMap to binary file
 					try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream(pattern+count+".hmp")))
 					{
-						out.writeObject(index);
+					//Resolving case where the term of the last record of current index is the same with the first record of the next index
+						HashMap<String,HashMap<Integer,MutableInt>> temp=new HashMap<>();//Create next HashMap
+						temp.put(recTerm, index.get(recTerm));//Store last term with his docs and frequencies
+						index.remove(recTerm);//remove from current index
+						out.writeObject(index);//write current index to disk
 						System.out.println("Index "+count+" saved to file");
-						index.clear();
-						index=new HashMap<>();
+						index.clear();//clear the index
+						index=temp;//assign current index to be the next HashMap
 						Runtime.getRuntime().gc();
 						++count;
 					}
@@ -322,89 +343,27 @@ public class Papadopo
 			}
 			
 		}
-		// TODO build index using totalLines of memory and store segments to disk 
-			InvertedIndex s=new InvertedIndex(pattern+0+".hmp");
+		InvertedIndex s;
+		try 
+		{
+			s = new InvertedIndex(pattern+0+".hmp",totalNumberOfDocuments);
+//			System.out.println(s.getDocumentsFrequency("same").get(3).get());
 			s.printIndex();
-		
-//		
-//		BuilderThread[] builders=new BuilderThread[cores];
-//		int totalSize=records.size();
-//		int portion=totalSize/cores;
-//		int start=0;
-//		int end=portion;
-//		for (int i = 0; i < builders.length; i++)
+//			s.printIndexToFile("printedIndex.txt");
+		} catch (ClassNotFoundException e) 
+		{
+			e.printStackTrace();
+		}
+//		try 
 //		{
-//			if(totalSize-end<=portion)
-//				end=totalSize;
-//			else
-//				while(records.get(end).getTerm()==records.get(end-1).getTerm())//end and end-1 will be separated if they are the different
-//				{
-//					System.out.println("Same");
-//				}
-//			//Give equal number of words to each thread
-//			ArrayList<Record> cut=new ArrayList<>( records.subList(start, end) );
-////			while(cut.get(cut.size()-1).getTerm()==cut.get(cut.size()-2).getTerm())
-////			{
-////				--end;
-////				cut.remove(cut.size()-1);
-////			}
-//			
-//			builders[i]=new BuilderThread(cut);//Initialize thread ( passing words, document id )
-//			builders[i].start();
-//			start=end;
-//			end+=portion;
-//		}
-//		ArrayList<HashMap<String,HashMap<Integer,MutableInt>>> indexes=new ArrayList<>();
-//		for (int i = 0; i < builders.length; i++)
+//			s = new InvertedIndex(pattern,1,totalNumberOfDocuments);
+//			System.out.println(s.getDocumentsFrequency("same").get(3).get());
+//		} catch (ClassNotFoundException e) 
 //		{
-//			if(builders[i].isAlive()) builders[i].join();//Wait for threads to stop
-//			indexes.add(builders[i].getIndex());
+//			e.printStackTrace();
 //		}
-//		InvertedIndex index=new InvertedIndex();
-//		index.mergeIndexes(indexes);
-//		System.out.println("TimeAfterSort ="+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
-//		for (Record record : records) 
-//		{
-//			System.out.println(record.getTerm()+","+record.getDocument()+","+record.getFrequency().get());
-//		}
-		
-//		index.printIndex();
-			System.out.println("Index Built and stored in "+count+" files");
+		System.out.println("Index Built and stored in "+count+" files");
 		System.out.println("Time= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
 	}
 
 }
-//ArrayList<Integer> s=new ArrayList<>();
-//for (int j = 0; j < 3; j++) 
-//try
-//{
-//	System.out.println(j);
-//	for (int i = 0; i < 1000000000; i++) 
-//	{
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//		s.add(i);
-//	}
-//}catch(OutOfMemoryError e)
-//{
-//	System.out.println("OUT OF MEMORY, size of arr= "+s.size());
-//	s.clear();
-//	s=new ArrayList<>();
-//	Runtime.getRuntime().gc();
-//	
-//}
