@@ -20,7 +20,7 @@ public class VectorChunkCalculator implements Runnable {
 	 * @param norm : a shared Double that is incremented (other threads may also be using this shared Double).
 	 * @param document : a "chunk" of this document (some words of the document) 
 	 * @param docID : the id of this document, that is (>=0 for all documents) or (=-1 for the query)
-	 * @param index : an inverted index built for all documents
+	 * @param index : an inverted index built for all documents(except the query)
 	 * @param documentsCount : the total number of documents of our collection.
 	 */
 	public VectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> document, int docID, InvertedIndex index, int documentsCount){  

@@ -51,101 +51,7 @@ public class QueryProcessor {
 			}
 		}	
 	}
-	
-	/**
-	 * Fills a part of a document's "vector".
-	 * Given a document's "chunk" of some words, this function puts the weights of the words of the "chunk" in the "vector".
-	 * The weight of a word inside this "vector" is: tf*idf (of this word).
-	 * @param vector : a shared Map where this function is going to write/read (other threads may also be using this shared Map).
-	 * @param norm : a shared Double that is incremented (other threads may also be using this shared Double).
-	 * @param document : a "chunk" of this document (some words of the document) 
-	 * @param docID : the id of this document, that is (>=0 for all documents) or (=-1 for the query)
-	 * @param index : an inverted index built for all documents
-	 * */
-/*	public void computeVector(Map<String,Double> vector, MutableDouble norm, List<String> document, int docID, InvertedIndex index){
-
-		 //* NOTE1: The "vector" is actually a HashMap that maps Word to Weight.
-		 //* NOTE2: tf and idf of a word don't change, so if we see that the weight of a word is already set, there is no need to recompute and reset it.
-
-		//Read the document and for each word insert a weight to "vector" 
-		Iterator<String> words = document.iterator();
-		while(words.hasNext()){
-			
-			String word = words.next();
 		
-					//Insert a weight only the first time you see this word (Is the weight already set? If yes, you are done.).
-					//Concurrency Note: 
-					//Scenario: Thread1 and Thread2 ask "does vector contain the word 'apple'?" and both get no as an answer.
-					//In this case, they will both (one at a time) write the same value 0.32 (for example) inside the map.
-					//So Thread1 puts 0.32 as the mapped value of 'apple' and then Thread2 replaces 0.32 with 0.32.
-					//This will only happen when the word 'apple' has no mappings. Once a mapping is created, this effect disappears.
-			
-			if(!vector.containsKey(word)){
-			
-				HashMap<Integer,MutableInt> docsMap = index.getHashMap().get(word);
-				
-				int freqInThisDocument = docsMap.get(docID).get();
-				
-				//How many documents (OR query) contain this word?
-				int nt;
-				nt = docsMap.size();
-				//if(queryFrequencies.containsKey(word)){nt++;}
-	
-				//Compute tf, idf
-				double idf = Math.log( 1 + documents/(double)nt);
-				double tf = 1 + Math.log(freqInThisDocument);
-			
-				//Write to the shared structures
-				System.out.println("weightInDoc"+docID+"("+word+") = "+" [1+log("+freqInThisDocument+")]*[log(1+"+documents+"/"+nt+")] = "+tf+"*"+idf+" = "+(tf*idf));
-				vector.put(word, tf*idf );
-				norm.incrementBy(Math.pow(tf*idf, 2));
-				System.out.println("norm += (weight)^2 = ("+(tf*idf)+")^2 = "+Math.pow(tf*idf, 2));
-			}
-		}		
-	}
-*/	
-	
-	/**
-	 * Fills a part of the query's "vector".
-	 * Given a query's "chunk" of some words, this function puts the weights of the words of the "chunk" in the "vector".
-	 * The weight of a word inside this "vector" is: tf*idf (of this word).
-	 * @param vector : a shared Map where this function is going to write/read (other threads may also be using this shared Map).
-	 * @param norm : a shared Double that is incremented (other threads may also be using this shared Double).
-	 * @param query : a "chunk" of the query (some words of the document) 
-	 * @param index : an inverted index built for all documents (except the query). The query word frequencies are stored in a QueryProcessor Map.
-	 * */
-	public void computeQueryVector(Map<String,Double> vector, SharedDouble norm, List<String> query, InvertedIndex index){
-
-		//Read the document and for each word insert a weight to "vector" 
-		Iterator<String> words = query.iterator();
-		while(words.hasNext()){
-			
-			String word = words.next();
-			
-			if(!vector.containsKey(word)){
-			
-				HashMap<Integer,MutableInt> docsMap = index.getHashMap().get(word);
-				
-				int freqInThisDocument = queryFrequencies.get(word);
-				
-				//How many documents (AND query) contain this word?
-				int nt;
-				nt = docsMap.size();
-				//nt++;//For the query
-	
-				//Compute tf,idf
-				double idf = Math.log( 1 + documents/(double)nt);
-				double tf = 1 + Math.log(freqInThisDocument);
-			
-				//Write to the shared structures
-				System.out.println("weightInDoc"+queryID+"("+word+") = "+" [1+log("+freqInThisDocument+")]*[log(1+"+documents+"/"+nt+")] = "+tf+"*"+idf+" = "+(tf*idf));
-				vector.put(word, tf*idf );
-				norm.incrementBy(Math.pow(tf*idf, 2));
-				System.out.println("norm += (weight)^2 = ("+(tf*idf)+")^2 = "+Math.pow(tf*idf, 2));
-			}
-		}		
-	}
-	
 	/**
 	 * Given a query "q", for each query word "w", for each document "d" that contains that word, add {weight(w,d)*weight(w,q)} to the similarity of "d" with the query.
 	 * */
@@ -204,7 +110,7 @@ public class QueryProcessor {
 		queryFrequencies = new HashMap<String,Integer>();
 
 		//Count the words of the query
-//		int totalWords = 0;
+		int totalWords = 0;
 		Iterator<String> words = query.iterator();
 		while(words.hasNext()){
 			String word = words.next();
@@ -214,22 +120,83 @@ public class QueryProcessor {
 			}else{
 				queryFrequencies.put(word, 1);
 			}
-//			totalWords++;
+			totalWords++;
 		}
 		
+		int threads = 2;
+		
 		//Declare the "shared" HashMap and norm in which the threads are going to write.
-		Map<String,Double> vector = Collections.synchronizedMap(new HashMap<String,Double>());
-		SharedDouble norm = new SharedDouble();
+		Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
+		SharedDouble sharedNorm = new SharedDouble();
 		
-		//TODO Put some threads to do this calculation "computeQueryVector" on a query "chunk" of words. And then join them (the exact same thing we do in main for document vectors).
+		distributeToThreads(true,queryID,query,totalWords,sharedVector,sharedNorm,threads);
 		
-		//Compute the query vector and norm
-		computeQueryVector(vector, norm, query, index);
-		
-		queryNorm = Math.sqrt(norm.get());
-		queryVector = vector;
+		queryNorm = Math.sqrt(sharedNorm.get());
+		queryVector = sharedVector;
 		System.out.println("vector[query]: "+queryVector);
 		System.out.println("norm[query]: squareRoot(Σ(weight^2)) = "+queryNorm);
+	}
+	
+	/**
+	 * Starts some threads each one of which, executes computations about vector weights on a given "chunk" of the document and stores it's results in the shared structures that are passed as parameters.
+	 * @param isTheQuery : true if the "document" parameter contains the words of the query, false if it contains the words of a document.
+	 * @param docID : the id of the document
+	 * @param document : a list of all words inside a document (or query)
+	 * @param totalWords : the total number of words this document has (the size of the "document" list)
+	 * @param sharedVector : the map where all threads are going to write their computations simultaneously
+	 * @param sharedNorm : a double number that is incremented by any thread
+	 * @param threads : the number of threads we want to distribute the computations to
+	 * */
+	public void distributeToThreads(boolean isTheQuery,int docID ,List<String> document, int totalWords, Map<String,Double> sharedVector, SharedDouble sharedNorm, int threads){  
+		
+		//Define how many words each thread will take.
+		int wordsPerThread = totalWords/threads;
+		int wordsForFirstThread = wordsPerThread;
+		wordsForFirstThread += (totalWords%threads);
+		int start=0;
+		int end=wordsForFirstThread;
+		
+		//Initialize the threads
+		ArrayList<Thread> myThreads = new ArrayList<Thread>();
+		
+		//Give a portion to the First thread
+		System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
+		System.out.println("Thread1 takes: "+document.subList(start, end));
+		
+		if(!isTheQuery){
+			myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+		}else{
+			myThreads.add(new Thread(new QueryVectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+		}
+		//Give a portion to the Rest of the threads
+		for(int t=0;t<threads-1;t++){
+			start = end;
+			end += wordsPerThread;
+			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
+			System.out.println("Thread"+(t+2)+" takes: "+document.subList(start, end));
+			if(!isTheQuery){
+				myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+			}else{
+				myThreads.add(new Thread(new QueryVectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+			}
+		}
+		
+		//Start all threads
+		Iterator<Thread> threadsIt = myThreads.iterator();
+		while(threadsIt.hasNext()){
+			
+			Thread t = threadsIt.next();
+			t.start();
+		}
+		
+		//Join all threads.
+		threadsIt = myThreads.iterator();
+		while(threadsIt.hasNext()){
+			
+			Thread t = threadsIt.next();
+			try {t.join();}
+			catch (InterruptedException e) {}
+		}
 	}
 	
 	public static void main(String[] args){
@@ -277,56 +244,9 @@ public class QueryProcessor {
 			//Declare the "shared" HashMap and norm in which all threads will write (this HashMap is the "vector" that contains word weights inside this document).
 			Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
 			SharedDouble sharedNorm = new SharedDouble();
-			
-			//Define how many words each thread will take.
-			int wordsPerThread = totalWords/threads;
-			int wordsForFirstThread = wordsPerThread;
-			wordsForFirstThread += (totalWords%threads);
-			int start=0;
-			int end=wordsForFirstThread;
-			
-//			//Give a portion to the First thread
-//			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-//			System.out.println("Thread1 takes: "+words.subList(start, end));
-//			qp.computeVector(sharedVector, sharedNorm, words.subList(start, end), i , qp.index);
-//			
-//			//Give a portion to the Rest of the threads
-//			for(int t=0;t<threads-1;t++){
-//				start = end;
-//				end += wordsPerThread;
-//				System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-//				System.out.println("Thread"+(t+2)+" takes: "+words.subList(start, end));
-//				qp.computeVector(sharedVector, sharedNorm, words.subList(start, end), i , qp.index);
-//			}
-			
-			//Initialize the threads
-			ArrayList<Thread> myThreads = new ArrayList<Thread>();
-			
-			//Give a portion to the First thread
-			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-			System.out.println("Thread1 takes: "+words.subList(start, end));
-			myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, words.subList(start, end), i , qp.index,qp.documents)));
 
-			//Give a portion to the Rest of the threads
-			for(int t=0;t<threads-1;t++){
-				start = end;
-				end += wordsPerThread;
-				System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-				System.out.println("Thread"+(t+2)+" takes: "+words.subList(start, end));
-				myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, words.subList(start, end), i , qp.index,qp.documents)));
-			}
-			
-			//Start all threads
-			Iterator<Thread> threadsIt = myThreads.iterator();
-			while(threadsIt.hasNext()){
-				
-				Thread t = threadsIt.next();
-				t.start();
-				
-				//Join the threads.
-				try {t.join();}
-				catch (InterruptedException e) {}
-			}
+			//Distribute the vector computation to some threads
+			qp.distributeToThreads(false,i, words, totalWords, sharedVector, sharedNorm, threads);
 			
 			//Store final result
 			qp.norms[i] = Math.sqrt(sharedNorm.get());
