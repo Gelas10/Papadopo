@@ -28,7 +28,7 @@ public class QueryProcessor {
 	public double queryNorm;
 	public Map<String,Double> queryVector;
 	
-	/**An inverted index built on the words of the query only*/
+	/**A simple frequency counter for every word in the query*/
 	public HashMap<String,Integer> queryFrequencies;
 	
 	public QueryProcessor(String docs[])
@@ -66,9 +66,7 @@ public class QueryProcessor {
 
 		 //* NOTE1: The "vector" is actually a HashMap that maps Word to Weight.
 		 //* NOTE2: tf and idf of a word don't change, so if we see that the weight of a word is already set, there is no need to recompute and reset it.
-		 //* NOTE3: N is the number of documents (the query does not count)
-		 //* NOTE4: nt is the number of documents that contain a given word. It is assumed that the query participates in this number (example: 2 documents contain "hello", query contains "hello", so nt=2+1) 
-		
+
 		//Read the document and for each word insert a weight to "vector" 
 		Iterator<String> words = document.iterator();
 		while(words.hasNext()){
@@ -189,8 +187,9 @@ public class QueryProcessor {
 			double notNormalizedSimilarity = similarities.getValue();
 			double docNorm   = vectors.get(docID).getNorm();
 			
-			System.out.println("Normalize sim(doc"+docID+","+"query): "+notNormalizedSimilarity+" -> "+(notNormalizedSimilarity/(docNorm*queryNorm)));
 			similarities.setValue(notNormalizedSimilarity/(docNorm*queryNorm));
+			//similarities.setValue(notNormalizedSimilarity/docNorm);
+			System.out.println("Normalize sim(doc"+docID+","+"query): "+notNormalizedSimilarity+" -> "+similarities.getValue());
 		}
 	}
 	
@@ -222,6 +221,8 @@ public class QueryProcessor {
 		Map<String,Double> vector = Collections.synchronizedMap(new HashMap<String,Double>());
 		MutableDouble norm = new MutableDouble();
 		
+		//TODO Put some threads to do this calculation "computeQueryVector" on a query "chunk" of words. And then join them (the exact same thing we do in main for document vectors).
+		
 		//Compute the query vector and norm
 		computeQueryVector(vector, norm, query, index);
 		
@@ -235,6 +236,8 @@ public class QueryProcessor {
 				
 		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");
+		
+		int threads = 1;
 		
 		String docs[] = 
 		{			
@@ -274,8 +277,6 @@ public class QueryProcessor {
 			//Declare the "shared" HashMap and norm in which all threads will write (this HashMap is the "vector" that contains word weights inside this document).
 			Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
 			MutableDouble sharedNorm = new MutableDouble();
-			
-			int threads = 1;
 			
 			//Define how many words each thread will take.
 			int wordsPerThread = totalWords/threads;
