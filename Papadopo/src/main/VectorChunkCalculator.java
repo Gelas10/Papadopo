@@ -8,7 +8,7 @@ import java.util.Map;
 public class VectorChunkCalculator implements Runnable {
 
 	private Map<String,Double> vector;
-	private MutableDouble norm;
+	private SharedDouble norm;
 	private List<String> document;
 	private int docID;
 	private InvertedIndex index;
@@ -23,7 +23,7 @@ public class VectorChunkCalculator implements Runnable {
 	 * @param index : an inverted index built for all documents
 	 * @param documentsCount : the total number of documents of our collection.
 	 */
-	public VectorChunkCalculator(Map<String,Double> vector, MutableDouble norm, List<String> document, int docID, InvertedIndex index, int documentsCount){  
+	public VectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> document, int docID, InvertedIndex index, int documentsCount){  
 		
 		this.vector = vector;
 		this.norm = norm;
@@ -50,12 +50,14 @@ public class VectorChunkCalculator implements Runnable {
 			
 			String word = words.next();
 		
-					//Insert a weight only the first time you see this word (Is the weight already set? If yes, you are done.).
+			//Insert a weight only the first time you see this word (Is the weight already set? If yes, you are done).		
 					//Concurrency Note: 
 					//Scenario: Thread1 and Thread2 ask "does vector contain the word 'apple'?" and both get no as an answer.
-					//In this case, they will both (one at a time) write the same value 0.32 (for example) inside the map.
-					//So Thread1 puts 0.32 as the mapped value of 'apple' and then Thread2 replaces 0.32 with 0.32.
-					//This will only happen when the word 'apple' has no mappings. Once a mapping is created, this effect disappears.
+					//In this case, they will both compute the weight. Then one of them (Thread1) will enter it's critical section.
+					//Thread1 will see that "vector does not contain this word" and will then execute the "write" commands on the shared variables.
+					//Once Thread1 exits it's critical section, Thread2 will enter it's critical section and see that "vector now actually contains this word".
+					//So Thread2 will skip the "write" commands and exit it's critical section too.
+					//The only time waste is that Thread2 computed the weight of the word and then it did not use it.
 			
 			if(!vector.containsKey(word)){
 			
@@ -72,10 +74,15 @@ public class VectorChunkCalculator implements Runnable {
 				double idf = Math.log( 1 + documentsCount/(double)nt);
 				double tf = 1 + Math.log(freqInThisDocument);
 			
-				//Write to the shared structures
+				//Write to the shared structures (critical section)
+				synchronized(this){
+					if(!vector.containsKey(word)){
+						vector.put(word, tf*idf );
+						norm.incrementBy(Math.pow(tf*idf, 2));
+					}
+				}
+				
 				System.out.println("weightInDoc"+docID+"("+word+") = "+" [1+log("+freqInThisDocument+")]*[log(1+"+documentsCount+"/"+nt+")] = "+tf+"*"+idf+" = "+(tf*idf));
-				vector.put(word, tf*idf );
-				norm.incrementBy(Math.pow(tf*idf, 2));
 				System.out.println("norm += (weight)^2 = ("+(tf*idf)+")^2 = "+Math.pow(tf*idf, 2));
 			}
 		}		

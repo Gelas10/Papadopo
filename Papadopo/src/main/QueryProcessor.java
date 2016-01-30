@@ -114,7 +114,7 @@ public class QueryProcessor {
 	 * @param query : a "chunk" of the query (some words of the document) 
 	 * @param index : an inverted index built for all documents (except the query). The query word frequencies are stored in a QueryProcessor Map.
 	 * */
-	public void computeQueryVector(Map<String,Double> vector, MutableDouble norm, List<String> query, InvertedIndex index){
+	public void computeQueryVector(Map<String,Double> vector, SharedDouble norm, List<String> query, InvertedIndex index){
 
 		//Read the document and for each word insert a weight to "vector" 
 		Iterator<String> words = query.iterator();
@@ -219,7 +219,7 @@ public class QueryProcessor {
 		
 		//Declare the "shared" HashMap and norm in which the threads are going to write.
 		Map<String,Double> vector = Collections.synchronizedMap(new HashMap<String,Double>());
-		MutableDouble norm = new MutableDouble();
+		SharedDouble norm = new SharedDouble();
 		
 		//TODO Put some threads to do this calculation "computeQueryVector" on a query "chunk" of words. And then join them (the exact same thing we do in main for document vectors).
 		
@@ -276,7 +276,7 @@ public class QueryProcessor {
 			
 			//Declare the "shared" HashMap and norm in which all threads will write (this HashMap is the "vector" that contains word weights inside this document).
 			Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
-			MutableDouble sharedNorm = new MutableDouble();
+			SharedDouble sharedNorm = new SharedDouble();
 			
 			//Define how many words each thread will take.
 			int wordsPerThread = totalWords/threads;
