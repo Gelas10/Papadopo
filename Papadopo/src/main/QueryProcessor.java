@@ -62,7 +62,7 @@ public class QueryProcessor {
 	 * @param docID : the id of this document, that is (>=0 for all documents) or (=-1 for the query)
 	 * @param index : an inverted index built for all documents
 	 * */
-	public void computeVector(Map<String,Double> vector, MutableDouble norm, List<String> document, int docID, InvertedIndex index){
+/*	public void computeVector(Map<String,Double> vector, MutableDouble norm, List<String> document, int docID, InvertedIndex index){
 
 		 //* NOTE1: The "vector" is actually a HashMap that maps Word to Weight.
 		 //* NOTE2: tf and idf of a word don't change, so if we see that the weight of a word is already set, there is no need to recompute and reset it.
@@ -103,7 +103,7 @@ public class QueryProcessor {
 			}
 		}		
 	}
-	
+*/	
 	
 	/**
 	 * Fills a part of the query's "vector".
@@ -233,11 +233,11 @@ public class QueryProcessor {
 	}
 	
 	public static void main(String[] args){
-				
+		
 		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");
 		
-		int threads = 1;
+		int threads = 3;
 		
 		String docs[] = 
 		{			
@@ -285,22 +285,48 @@ public class QueryProcessor {
 			int start=0;
 			int end=wordsForFirstThread;
 			
+//			//Give a portion to the First thread
+//			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
+//			System.out.println("Thread1 takes: "+words.subList(start, end));
+//			qp.computeVector(sharedVector, sharedNorm, words.subList(start, end), i , qp.index);
+//			
+//			//Give a portion to the Rest of the threads
+//			for(int t=0;t<threads-1;t++){
+//				start = end;
+//				end += wordsPerThread;
+//				System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
+//				System.out.println("Thread"+(t+2)+" takes: "+words.subList(start, end));
+//				qp.computeVector(sharedVector, sharedNorm, words.subList(start, end), i , qp.index);
+//			}
+			
+			//Initialize the threads
+			ArrayList<Thread> myThreads = new ArrayList<Thread>();
+			
 			//Give a portion to the First thread
 			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
 			System.out.println("Thread1 takes: "+words.subList(start, end));
-			qp.computeVector(sharedVector, sharedNorm, words.subList(start, end), i , qp.index);
-			
+			myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, words.subList(start, end), i , qp.index,qp.documents)));
+
 			//Give a portion to the Rest of the threads
 			for(int t=0;t<threads-1;t++){
 				start = end;
 				end += wordsPerThread;
 				System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
 				System.out.println("Thread"+(t+2)+" takes: "+words.subList(start, end));
-				qp.computeVector(sharedVector, sharedNorm, words.subList(start, end), i , qp.index);
+				myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, words.subList(start, end), i , qp.index,qp.documents)));
 			}
 			
-			//Join the threads.
-			//TODO : Join the threads
+			//Start all threads
+			Iterator<Thread> threadsIt = myThreads.iterator();
+			while(threadsIt.hasNext()){
+				
+				Thread t = threadsIt.next();
+				t.start();
+				
+				//Join the threads.
+				try {t.join();}
+				catch (InterruptedException e) {}
+			}
 			
 			//Store final result
 			qp.norms[i] = Math.sqrt(sharedNorm.get());
