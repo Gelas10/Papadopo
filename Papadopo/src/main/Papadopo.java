@@ -27,61 +27,27 @@ public class Papadopo
 	/**
 	 * Sorts records in given filename using given totalLines of memory
 	 * @param filename	name of the file in which there are unordered records: term,document,frequency
-	 * @param totalLines number of total lines that can be used for sorting
+	 * @param cores number of threads to be used
 	 * @return An ArrayList<String> with the filenames of the sorted segments
+	 * @throws InterruptedException 
 	 */
-	private static ArrayList<String> sortFromFile(String filename,int totalLines)
+	private static ArrayList<String> sortFromFile(String[] inputFiles,int cores) throws InterruptedException
 	{
 		ArrayList<String> filenames=new ArrayList<>();
-		String pattern="sorted";
-		int fileNumber=0;
-		
-		ArrayList<Record> records=new ArrayList<>();
-		try(BufferedReader reader=new BufferedReader(new FileReader(filename)))
+		String pattern="sorted-";
+//		int fileNumber=0;
+		SorterThread[] sorters=new SorterThread[cores];
+		for (int i = 0; i < cores; i++) 
 		{
-			String line;
-//			int count=0;
-			while((line=reader.readLine())!=null)
-			{
-//				records.add(new Record(line));				
-//				++count;
-//				if(count==totalLines)
-//				{
-//					Collections.sort(records);
-//					filenames.add(pattern+fileNumber+".txt");
-//					writeToFile(pattern+(fileNumber++)+".txt",records,false);
-//					records.clear();
-//					count=0;
-//				}
-				try
-				{
-					records.add(new Record(line));
-				}catch(OutOfMemoryError error)
-				{
-					Collections.sort(records);
-					filenames.add(pattern+fileNumber+".txt");
-					writeToFile(pattern+(fileNumber++)+".txt",records,false);
-					records.clear();
-				}
-			}
-//			if(count>0)
-//			{
-//				Collections.sort(records);
-//				filenames.add(pattern+fileNumber+".txt");
-//				writeToFile(pattern+(fileNumber++)+".txt",records,false);
-//			}
-			if(!records.isEmpty())
-			{
-				Collections.sort(records);
-				filenames.add(pattern+fileNumber+".txt");
-				writeToFile(pattern+(fileNumber++)+".txt",records,false);
-			}
-			
-		} catch (IOException e) 
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			sorters[i]=new SorterThread(inputFiles[i],pattern+i+"-");
+			sorters[i].start();
 		}
+		for (int i = 0; i < cores; i++) 
+		{
+			sorters[i].join();
+			filenames.addAll(sorters[i].getFilenames());
+		}
+		
 		return filenames;
 	}
 	
@@ -170,6 +136,7 @@ public class Papadopo
 	
 	public static void main(String[] args) throws InterruptedException, IOException 
 	{		
+		
 		int totalLines=100000;//of memory
 		int totalNumberOfDocuments;
 		if(args.length>0)
@@ -195,14 +162,19 @@ public class Papadopo
 		//Epic stack overflow answer:
 		//If cores is less than one, either your processor is about to die, 
 		//or your JVM has a serious bug in it, or the universe is about to blow up.
-		
-		
+		String[] unsortedFilenames=new String[cores];
+		String pattern_unsorted="records-";
+		for (int i = 0; i < unsortedFilenames.length; i++) 
+		{
+			unsortedFilenames[i]=pattern_unsorted+i+".txt";
+			new File(unsortedFilenames[i]).delete();
+		}
 		IndexWorker[] workers=new IndexWorker[cores];//Create as many threads as there are cores
 		boolean finished=false;
 		int docID=1;
 		ArrayList<String> words=new ArrayList<>();//All the words of the file		
 		Random r=new Random();
-		ArrayList<Record> records=new ArrayList<>();//Records <term,document,frequency>
+//		ArrayList<Record> records=new ArrayList<>();//Records <term,document,frequency>//forDeletion
 //		for (int i = 0; i < 5000000; i++) 
 //		{
 //			words.add("word"+i);
@@ -236,16 +208,19 @@ public class Papadopo
 					start=end;
 					end+=portion;
 				}
-				
+				words=new ArrayList<>();//clearing memory
+				Runtime.getRuntime().gc();//clearing memory
 				for (int i = 0; i < workers.length; i++)
 				{
 					if(workers[i].isAlive()) workers[i].join();//Wait for threads to stop
+					//Writing records as <term,doc,frequency in doc> in each thread's text file
+					writeToFile(unsortedFilenames[i],workers[i].getRecords(),true);
 					
-					records.addAll(workers[i].getRecords());
+//					records.addAll(workers[i].getRecords());//forDeletion
 				}
 //				Writing records as <term,doc,frequency in doc> in a text file
-				writeToFile(unorderedRecords,records,true);
-				records.clear();
+//				writeToFile(unorderedRecords,records,true);//forDeletion
+//				records.clear();//forDeletion
 				System.out.println("TimeForDoc= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
 				docID++;
 			} catch (FileNotFoundException e)
@@ -263,7 +238,7 @@ public class Papadopo
 		//Sorting while using limited number of lines in memory (totalLines)
 		
 		ArrayList<String> files=new ArrayList<>();//Names of files which contain records sorted by term
-		files=sortFromFile(unorderedRecords,totalLines);
+		files=sortFromFile(unsortedFilenames,cores);//sort using <cores> threads
 		String sortedRecords="sortedRecords.txt";
 		mergeSortFiles(files,sortedRecords);//Merging the sorted files into one file
 		
@@ -348,7 +323,7 @@ public class Papadopo
 		{
 			s = new InvertedIndex(pattern+0+".hmp",totalNumberOfDocuments);
 //			System.out.println(s.getDocumentsFrequency("same").get(3).get());
-			s.printIndex();
+//			s.printIndex();
 //			s.printIndexToFile("printedIndex.txt");
 		} catch (ClassNotFoundException e) 
 		{
