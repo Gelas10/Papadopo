@@ -10,10 +10,7 @@ import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 public class QueryProcessor {
-	
-	//TODO Make these variables private
-	
-	
+		
 	public InvertedIndex index;
 	public double norms[];
 	
@@ -21,7 +18,7 @@ public class QueryProcessor {
 	public HashMap<Integer,Vector> vectors;
 	
 	/**Maps docID to similarity (with a query)*/
-	public HashMap<Integer,Double> similarity;
+	public Map<Integer,Double> similarity;
 	
 	public int documents;
 	public int queryID = -1;
@@ -39,6 +36,7 @@ public class QueryProcessor {
 		similarity = new HashMap<Integer,Double>();
 		index = new InvertedIndex();
 		vectors = new HashMap<Integer,Vector>();
+		similarity = Collections.synchronizedMap(new HashMap<Integer,Double>());
 		
 		//Make the Inverted Index
 		//Read each document and insert it's words into the index
@@ -51,60 +49,13 @@ public class QueryProcessor {
 			}
 		}	
 	}
-		
-	/**
-	 * Given a query "q", for each query word "w", for each document "d" that contains that word, add {weight(w,d)*weight(w,q)} to the similarity of "d" with the query.
-	 * */
-	public void computeSimilarities(){
-		
-		//For each query word
-		for (Entry<String, Double> queryTerm : queryVector.entrySet()){
-					
-			String word = queryTerm.getKey();
-			System.out.println(word+" (of query)");
-			
-			//For each document that contains this word
-			for (Entry<Integer, MutableInt> doc : index.getHashMap().get(word).entrySet()){
-				
-				int docID = doc.getKey();
-				
-				//Read the weight of this word in the query and in the document
-				double weightOfWordInQuery = queryVector.get(word);
-				double weightOfWordInDocument = vectors.get(docID).getVector().get(word);
-				
-				//Add something to the similarity of this document (with the query)
-				if(similarity.containsKey(docID)){
-					similarity.put(docID, similarity.get(docID) + (weightOfWordInQuery*weightOfWordInDocument));
-				}else{
-					similarity.put(docID,weightOfWordInQuery*weightOfWordInDocument);
-				}
-				
-				System.out.println("\tsim(doc"+docID+") += "+"weightQuery["+word+"]*weightDoc["+word+"] = "+weightOfWordInQuery+"*"+weightOfWordInDocument+" = "+(weightOfWordInQuery*weightOfWordInDocument));
-			}
-		}
-		
-		System.out.println("\n\n");
-		
-		//Replace similarities with normalized similarities
-		for (Entry<Integer, Double> similarities : similarity.entrySet()){
-			
-			int docID = similarities.getKey();
-			
-			double notNormalizedSimilarity = similarities.getValue();
-			double docNorm   = vectors.get(docID).getNorm();
-			
-			similarities.setValue(notNormalizedSimilarity/(docNorm*queryNorm));
-			//similarities.setValue(notNormalizedSimilarity/docNorm);
-			System.out.println("Normalize sim(doc"+docID+","+"query): "+notNormalizedSimilarity+" -> "+similarities.getValue());
-		}
-	}
-	
 	
 	/**
 	 * Counts the word frequency for each word in the query and computes the "vector" and norm of the query.
 	 * @param queryString : the full text of the query (all it's words)
+	 * @return the total number of words, the query has
 	 * */
-	public void setQuery(List<String> query){	
+	public int setQuery(List<String> query){	
 		
 		//Count the frequency of each word inside the query
 		queryFrequencies = new HashMap<String,Integer>();
@@ -129,17 +80,19 @@ public class QueryProcessor {
 		Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
 		SharedDouble sharedNorm = new SharedDouble();
 		
-		distributeToThreads(true,queryID,query,totalWords,sharedVector,sharedNorm,threads);
+		distributeToThreads("query vector",queryID,query,totalWords,sharedVector,sharedNorm,threads);
 		
 		queryNorm = Math.sqrt(sharedNorm.get());
 		queryVector = sharedVector;
 		System.out.println("vector[query]: "+queryVector);
 		System.out.println("norm[query]: squareRoot(Σ(weight^2)) = "+queryNorm);
+		
+		return totalWords;
 	}
 	
 	/**
 	 * Starts some threads each one of which, executes computations about vector weights on a given "chunk" of the document and stores it's results in the shared structures that are passed as parameters.
-	 * @param isTheQuery : true if the "document" parameter contains the words of the query, false if it contains the words of a document.
+	 * @param whatComputation : Accepted values are: "document vector" or "query vector" or "similarities". This parameter defines what operation is to be applied on the data.
 	 * @param docID : the id of the document
 	 * @param document : a list of all words inside a document (or query)
 	 * @param totalWords : the total number of words this document has (the size of the "document" list)
@@ -147,7 +100,8 @@ public class QueryProcessor {
 	 * @param sharedNorm : a double number that is incremented by any thread
 	 * @param threads : the number of threads we want to distribute the computations to
 	 * */
-	public void distributeToThreads(boolean isTheQuery,int docID ,List<String> document, int totalWords, Map<String,Double> sharedVector, SharedDouble sharedNorm, int threads){  
+	@SuppressWarnings("unchecked")
+	public <K,V> void distributeToThreads(String whatComputation,int docID ,List<String> document, int totalWords, Map<K,V> sharedVector, SharedDouble sharedNorm, int threads){  
 		
 		//Define how many words each thread will take.
 		int wordsPerThread = totalWords/threads;
@@ -163,10 +117,15 @@ public class QueryProcessor {
 		System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
 		System.out.println("Thread1 takes: "+document.subList(start, end));
 		
-		if(!isTheQuery){
-			myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
-		}else{
-			myThreads.add(new Thread(new QueryVectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+		if(whatComputation.equals("document vector")){
+			
+			myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+		}else if(whatComputation.equals("query vector")){
+			
+			myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+		}else if(whatComputation.equals("similarities")){
+			
+			myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
 		}
 		//Give a portion to the Rest of the threads
 		for(int t=0;t<threads-1;t++){
@@ -174,10 +133,16 @@ public class QueryProcessor {
 			end += wordsPerThread;
 			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
 			System.out.println("Thread"+(t+2)+" takes: "+document.subList(start, end));
-			if(!isTheQuery){
-				myThreads.add(new Thread(new VectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
-			}else{
-				myThreads.add(new Thread(new QueryVectorChunkCalculator(sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+			
+			if(whatComputation.equals("document vector")){
+				
+				myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+			}else if(whatComputation.equals("query vector")){
+				
+				myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+			}else if(whatComputation.equals("similarities")){
+				
+				myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
 			}
 		}
 		
@@ -205,6 +170,7 @@ public class QueryProcessor {
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");
 		
 		int threads = 3;
+		int threadsForSimilarity = 2;
 		
 		String docs[] = 
 		{			
@@ -223,7 +189,7 @@ public class QueryProcessor {
 		ArrayList<String> query = new ArrayList<String>();
 		query.add("κομήτης");
 		query.add("Χάλλεϋ");
-		qp.setQuery(query);
+		int totalQueryWords = qp.setQuery(query);
 		
 		System.out.println("================================================================================================================================\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 
 		
@@ -246,7 +212,7 @@ public class QueryProcessor {
 			SharedDouble sharedNorm = new SharedDouble();
 
 			//Distribute the vector computation to some threads
-			qp.distributeToThreads(false,i, words, totalWords, sharedVector, sharedNorm, threads);
+			qp.distributeToThreads("document vector",i, words, totalWords, sharedVector, sharedNorm, threads);
 			
 			//Store final result
 			qp.norms[i] = Math.sqrt(sharedNorm.get());
@@ -258,11 +224,11 @@ public class QueryProcessor {
 		
 		System.out.println("\n\n\n================================================================================================================================\nComputing similarity ...\n");
 		
-		qp.computeSimilarities();
+		qp.distributeToThreads("similarities", -999, query, totalQueryWords, qp.similarity, null, threadsForSimilarity);
 		
 		System.out.println("\n\n\n\n");
 		
-		//Print normalized similarities
+		//Print similarities
 		for (Entry<Integer, Double> similarities : qp.similarity.entrySet()){
 			
 			System.out.println("similarity("+similarities.getKey()+",query): "+similarities.getValue());
