@@ -91,7 +91,7 @@ public class QueryProcessor {
 	}
 	
 	/**
-	 * Starts some threads each one of which, executes computations about vector weights on a given "chunk" of the document and stores it's results in the shared structures that are passed as parameters.
+	 * Starts some threads each one of which, executes computations on a given "chunk" of the document and stores it's results in the shared structures that are passed as parameters.
 	 * @param whatComputation : Accepted values are: "document vector" or "query vector" or "similarities". This parameter defines what operation is to be applied on the data.
 	 * @param docID : the id of the document
 	 * @param document : a list of all words inside a document (or query)
@@ -127,22 +127,28 @@ public class QueryProcessor {
 			
 			myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
 		}
-		//Give a portion to the Rest of the threads
-		for(int t=0;t<threads-1;t++){
-			start = end;
-			end += wordsPerThread;
-			System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-			System.out.println("Thread"+(t+2)+" takes: "+document.subList(start, end));
+		
+		//if the First thread left some words
+		if(end<totalWords){
 			
-			if(whatComputation.equals("document vector")){
+			//Give a portion to the Rest of the threads
+			for(int t=0;t<threads-1;t++){
 				
-				myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
-			}else if(whatComputation.equals("query vector")){
+				start = end;
+				end += wordsPerThread;
+				System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
+				System.out.println("Thread"+(t+2)+" takes: "+document.subList(start, end));
 				
-				myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
-			}else if(whatComputation.equals("similarities")){
-				
-				myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
+				if(whatComputation.equals("document vector")){
+					
+					myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+				}else if(whatComputation.equals("query vector")){
+					
+					myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+				}else if(whatComputation.equals("similarities")){
+					
+					myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
+				}
 			}
 		}
 		
@@ -169,7 +175,7 @@ public class QueryProcessor {
 		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");
 		
-		int threads = 3;
+		int threads = 4;
 		int threadsForSimilarity = 2;
 		
 		String docs[] = 
@@ -182,6 +188,20 @@ public class QueryProcessor {
 			"ο Ήλιος είναι ένας αστέρας",
 			"ο Άρης είναι ένας πλανήτης του ηλιακού μας συστήματος"
 		};
+	
+		//Stress test
+		
+//		int threads = 35;
+//		String docs[] = 
+//			{			
+//				"κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης μήλο τραπέζι",
+//				"Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ ανακαλύφθηκε από τον αστρονόμο Έντμοντ Χάλλεϋ",
+//				"κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ μήλο σκύλος αστέρι πλανήτης",
+//				"ο πλανήτης Άρης έχει δύο φυσικούς δορυφόρους το Δείμο και το Φόβο",
+//				"ο πλανήτης Δίας έχει εξήντα τρείς γνωστούς φυσικούς δορυφόρους",
+//				"ο Ήλιος είναι ένας αστέρας",
+//				"ο Άρης είναι ένας πλανήτης του ηλιακού μας συστήματος"
+//			};
 		
 		QueryProcessor qp = new QueryProcessor(docs);
 		

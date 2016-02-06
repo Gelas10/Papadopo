@@ -43,7 +43,7 @@ public class VectorChunkCalculator implements Runnable {
 		
 		//* NOTE1: The "vector" is actually a HashMap that maps Word to Weight.
 		 //* NOTE2: tf and idf of a word don't change, so if we see that the weight of a word is already set, there is no need to recompute and reset it.
-
+		
 		//Read the document and for each word insert a weight to "vector" 
 		Iterator<String> words = document.iterator();
 		while(words.hasNext()){
@@ -58,6 +58,7 @@ public class VectorChunkCalculator implements Runnable {
 					//Once Thread1 exits it's critical section, Thread2 will enter it's critical section and see that "vector now actually contains this word".
 					//So Thread2 will skip the "write" commands and exit it's critical section too.
 					//The only time waste is that Thread2 computed the weight of the word and then it did not use it.
+					//This rare time waste could be solved if the critical section was bigger and included all commands inside the "while" loop (we kept the minimal critical section). 
 			
 			if(!vector.containsKey(word)){
 			
