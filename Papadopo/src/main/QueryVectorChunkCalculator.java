@@ -50,33 +50,37 @@ public class QueryVectorChunkCalculator implements Runnable{
 			
 			String word = words.next();
 			
-			if(!vector.containsKey(word)){
+			//This word appears in > 0 documents
+			HashMap<Integer,MutableInt> documentsThatContainWord = index.getHashMap().get(word);
+			if(documentsThatContainWord != null){
 			
-				HashMap<Integer,MutableInt> docsMap = index.getHashMap().get(word);
+				//query weight vector does not have the weight for this word already computed and stored
+				if(!vector.containsKey(word)){
+					
+					int freqInThisDocument = queryFrequencies.get(word);
+					
+					//How many documents (AND query) contain this word?
+					int nt;
+					nt = documentsThatContainWord.size();
+					//nt++;//For the query
+		
+					//Compute tf,idf
+					double idf = Math.log( 1 + documentsCount/(double)nt);
+					double tf = 1 + Math.log(freqInThisDocument);
 				
-				int freqInThisDocument = queryFrequencies.get(word);
-				
-				//How many documents (AND query) contain this word?
-				int nt;
-				nt = docsMap.size();
-				//nt++;//For the query
-	
-				//Compute tf,idf
-				double idf = Math.log( 1 + documentsCount/(double)nt);
-				double tf = 1 + Math.log(freqInThisDocument);
-			
-				//Write to the shared structures (critical section)
-				synchronized(this){
-					if(!vector.containsKey(word)){
-						vector.put(word, tf*idf );
-						norm.incrementBy(Math.pow(tf*idf, 2));
+					//Write to the shared structures (critical section)
+					synchronized(this){
+						if(!vector.containsKey(word)){
+							vector.put(word, tf*idf );
+							norm.incrementBy(Math.pow(tf*idf, 2));
+						}
 					}
+					
+					System.out.println("weightInDoc"+queryID+"("+word+") = "+" [1+log("+freqInThisDocument+")]*[log(1+"+documentsCount+"/"+nt+")] = "+tf+"*"+idf+" = "+(tf*idf));
+					System.out.println("norm += (weight)^2 = ("+(tf*idf)+")^2 = "+Math.pow(tf*idf, 2));
 				}
-				
-				System.out.println("weightInDoc"+queryID+"("+word+") = "+" [1+log("+freqInThisDocument+")]*[log(1+"+documentsCount+"/"+nt+")] = "+tf+"*"+idf+" = "+(tf*idf));
-				System.out.println("norm += (weight)^2 = ("+(tf*idf)+")^2 = "+Math.pow(tf*idf, 2));
-			}
-		}	
+			}	
+		}
 	}
 
 	

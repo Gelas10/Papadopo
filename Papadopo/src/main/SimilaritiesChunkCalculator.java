@@ -46,32 +46,37 @@ public class SimilaritiesChunkCalculator implements Runnable {
 		
 			String word = queryTerms.next();
 			System.out.println(word+" (of query)");
+						
+			//This word appears in > 0 documents
+			HashMap<Integer,MutableInt> documentsThatContainWord = index.getHashMap().get(word);
+			if(documentsThatContainWord != null){
 			
-			//For each document that contains this word
-			for (Entry<Integer, MutableInt> doc : index.getHashMap().get(word).entrySet()){
-				
-				int docID = doc.getKey();
-				
-				//Read the weight of this word in the query and in the document
-				double weightOfWordInQuery = queryVector.get(word);
-				double weightOfWordInDocument = vectors.get(docID).getVector().get(word);
-				
-				double documentNorm = vectors.get(docID).getNorm();
-				double addThisToSimilarity = (weightOfWordInQuery*weightOfWordInDocument)/(queryNorm*documentNorm);
-				
-				//Write to the shared map (critical section)
-				synchronized(this){
+				//For each document that contains this word
+				for (Entry<Integer, MutableInt> doc : documentsThatContainWord.entrySet()){
 					
-					//Add something to the similarity of this document (with the query)
-					if(similarities.containsKey(docID)){
-						similarities.put(docID, similarities.get(docID) + addThisToSimilarity);
-					}else{
-						similarities.put(docID,addThisToSimilarity);
+					int docID = doc.getKey();
+					
+					//Read the weight of this word in the query and in the document
+					double weightOfWordInQuery = queryVector.get(word);
+					double weightOfWordInDocument = vectors.get(docID).getVector().get(word);
+					
+					double documentNorm = vectors.get(docID).getNorm();
+					double addThisToSimilarity = (weightOfWordInQuery*weightOfWordInDocument)/(queryNorm*documentNorm);
+					
+					//Write to the shared map (critical section)
+					synchronized(this){
+						
+						//Add something to the similarity of this document (with the query)
+						if(similarities.containsKey(docID)){
+							similarities.put(docID, similarities.get(docID) + addThisToSimilarity);
+						}else{
+							similarities.put(docID,addThisToSimilarity);
+						}
 					}
+					
+					System.out.println("\tsim(doc"+docID+") += "+"(weightQuery["+word+"]*weightDoc["+word+"])/(queryNorm*documentNorm)  = ("+weightOfWordInQuery+"*"+weightOfWordInDocument+")/("+queryNorm+"*"+documentNorm+") = "+addThisToSimilarity);
 				}
-				
-				System.out.println("\tsim(doc"+docID+") += "+"(weightQuery["+word+"]*weightDoc["+word+"])/(queryNorm*documentNorm)  = ("+weightOfWordInQuery+"*"+weightOfWordInDocument+")/("+queryNorm+"*"+documentNorm+") = "+addThisToSimilarity);
-			}
-		}		
+			}	
+		}	
 	}
 }
