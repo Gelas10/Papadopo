@@ -137,23 +137,23 @@ public class Papadopo
 	public static void main(String[] args) throws InterruptedException, IOException 
 	{		
 		
-		int totalLines=100000;//of memory
+//		int totalLines=100000;//of memory
 		int totalNumberOfDocuments;
-		if(args.length>0)
-		{
-			try
-			{
-				totalLines=Integer.parseInt(args[0]);
-			}
-			catch(NumberFormatException e)
-			{
-				totalLines=100000;
-			}
-		}
-
+//		if(args.length>0)
+//		{
+//			try
+//			{
+//				totalLines=Integer.parseInt(args[0]);
+//			}
+//			catch(NumberFormatException e)
+//			{
+//				totalLines=100000;
+//			}
+//		}
 		
-		String unorderedRecords="records.txt";
-		new File(unorderedRecords).delete();
+		
+//		String unorderedRecords="records.txt";
+//		new File(unorderedRecords).delete();
 		
 		long before=System.nanoTime();
 		int cores = Runtime.getRuntime().availableProcessors();
@@ -172,23 +172,28 @@ public class Papadopo
 		IndexWorker[] workers=new IndexWorker[cores];//Create as many threads as there are cores
 		boolean finished=false;
 		int docID=1;
-		ArrayList<String> words=new ArrayList<>();//All the words of the file		
-		Random r=new Random();
+		List<String> words;//=new LinkedList<>();//ArrayList<>();//All the words of the file	
+		
+//		Random r=new Random();
 //		ArrayList<Record> records=new ArrayList<>();//Records <term,document,frequency>//forDeletion
 //		for (int i = 0; i < 5000000; i++) 
 //		{
 //			words.add("word"+i);
 //		}
+		String word;
+//		words=new ArrayList<>();//All the words of the file
 		before=System.nanoTime();
 		do
 		{
 			String filename=docID+".txt";// Reading files named [id].txt ( example : 1.txt )
 			try (Scanner scanner=new Scanner(new File(filename)))
 			{
-				words=new ArrayList<>();//All the words of the file
+				
+				words=new ArrayList<>();
+//				words.clear();
 				while(scanner.hasNext())
 				{
-					String word=processWord(scanner.next());
+					word=processWord(scanner.next());
 					words.add(word);
 //					System.out.println(word);
 				}
@@ -203,19 +208,20 @@ public class Papadopo
 					if(totalSize-end<portion)
 						end=totalSize;
 					//Give equal number of words to each thread
-					workers[i]=new IndexWorker(new ArrayList<>( words.subList(start, end)),docID);//Initialize thread ( passing words, document id )
+					workers[i]=new IndexWorker(words.subList(start, end),docID);//Initialize thread ( passing words, document id )
 					workers[i].start();
 					start=end;
 					end+=portion;
 				}
-				words=new ArrayList<>();//clearing memory
-				Runtime.getRuntime().gc();//clearing memory
+				words=null;
+//				words=new ArrayList<>();//clearing memory
+//				Runtime.getRuntime().gc();//clearing memory
 				for (int i = 0; i < workers.length; i++)
 				{
 					if(workers[i].isAlive()) workers[i].join();//Wait for threads to stop
 					//Writing records as <term,doc,frequency in doc> in each thread's text file
 					writeToFile(unsortedFilenames[i],workers[i].getRecords(),true);
-					
+					workers[i]=null;//Dereferencing for memory clear
 //					records.addAll(workers[i].getRecords());//forDeletion
 				}
 //				Writing records as <term,doc,frequency in doc> in a text file

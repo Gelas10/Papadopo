@@ -11,7 +11,7 @@ import java.util.Collections;
 public class SorterThread extends Thread
 {
 	private ArrayList<String> filenames;
-	private ArrayList<Record> records;
+//	private ArrayList<Record> records;
 	private String input;
 	private String pattern;
 	public SorterThread(String in,String out)
@@ -31,7 +31,8 @@ public class SorterThread extends Thread
 		
 		int fileNumber=0;
 		
-		ArrayList<Record> records=new ArrayList<>();
+//		ArrayList<Record> records=new ArrayList<>();
+		ArrayList<String> strings=new ArrayList<>();
 		try(BufferedReader reader=new BufferedReader(new FileReader(input)))
 		{
 			String line;
@@ -39,20 +40,28 @@ public class SorterThread extends Thread
 			{
 				try
 				{
-					records.add(new Record(line));
-				}catch(OutOfMemoryError error)
+//					records.add(new Record(line));
+					strings.add(line);
+				}catch(OutOfMemoryError error)//Not working, find other way to sort chunks
 				{
-					Collections.sort(records);
+					
+//					Collections.sort(records);
+					Collections.sort(strings);
 					filenames.add(pattern+fileNumber+".txt");
-					writeToFile(pattern+(fileNumber++)+".txt",records,false);
-					records.clear();
+//					writeToFile(pattern+(fileNumber++)+".txt",records,false);
+					writeToFile2(pattern+(fileNumber++)+".txt",strings);
+//					records.clear();
+					strings.clear();
 				}
 			}
-			if(!records.isEmpty())
+			if(!strings.isEmpty())
+//			if(!records.isEmpty())
 			{
-				Collections.sort(records);
+//				Collections.sort(records);
+				Collections.sort(strings);
 				filenames.add(pattern+fileNumber+".txt");
-				writeToFile(pattern+(fileNumber++)+".txt",records,false);
+//				writeToFile(pattern+(fileNumber++)+".txt",records,false);
+				writeToFile2(pattern+(fileNumber++)+".txt",strings);
 			}
 			
 		} catch (IOException e) 
@@ -79,7 +88,20 @@ public class SorterThread extends Thread
 			e.printStackTrace();
 		}
 	}
-	
+	private static void writeToFile2(String filename,ArrayList<String> strings)
+	{
+		try(BufferedWriter writer=new BufferedWriter(new FileWriter(filename,false)))
+		{
+			for (String string : strings) 
+			{
+				writer.write(string+"\n");
+			}
+		} catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	
 }

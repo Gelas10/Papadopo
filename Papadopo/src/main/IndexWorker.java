@@ -7,11 +7,11 @@ import java.util.Map.Entry;
 
 public class IndexWorker extends Thread 
 {
-	ArrayList<String> words;
+	List<String> words;
 	ArrayList<Record> records;
 	int doc;
 	InvertedIndex index;
-	public IndexWorker(ArrayList<String> words,int doc)
+	public IndexWorker(List<String> words,int doc)
 	{
 		this.words=words;
 		this.doc=doc;
@@ -23,6 +23,7 @@ public class IndexWorker extends Thread
 		HashMap<String,MutableInt> freq=new HashMap<>();
 		for (String word : words) 
 		{
+//			System.out.println("running");
 			MutableInt count = freq.get(word);
 			if (count == null) 
 			{
