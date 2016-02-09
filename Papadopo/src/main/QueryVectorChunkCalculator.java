@@ -22,17 +22,16 @@ public class QueryVectorChunkCalculator implements Runnable{
 	 * @param document : a "chunk" the query (some words of the query) 
 	 * @param queryID : the id of the query
 	 * @param index : an inverted index built for all documents (except the query)
-	 * @param documentsCount : the total number of documents of our collection.
 	 * @param queryFrequencies : the frequency of each word of the query, inside the query.
 	 */
-	public QueryVectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> query, int queryID, InvertedIndex index, int documentsCount, HashMap<String,Integer> queryFrequencies){  
+	public QueryVectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> query, int queryID, InvertedIndex index, HashMap<String,Integer> queryFrequencies){  
 		
 		this.vector = vector;
 		this.norm = norm;
 		this.query = query;
 		this.queryID = queryID;
 		this.index = index;
-		this.documentsCount = documentsCount;
+		this.documentsCount = index.getNumberOfDocuments();
 		this.queryFrequencies = queryFrequencies;
 	}
 	

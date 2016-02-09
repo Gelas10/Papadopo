@@ -1,5 +1,6 @@
 package main;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -11,7 +12,7 @@ public class SimilaritiesChunkCalculator implements Runnable {
 	private Map<Integer,Double> similarities;
 	private List<String> query;
 	private InvertedIndex index;
-	private HashMap<Integer,Vector> vectors;
+	private HashMap<Integer,Double> norms;
 	private Map<String,Double> queryVector;
 	private double queryNorm;
 	
@@ -20,16 +21,16 @@ public class SimilaritiesChunkCalculator implements Runnable {
 	 * @param sharedMap : a shared Map where this function is going to write/read (other threads may also be using this shared Map).
 	 * @param query : a "chunk" of the query (some words of the query) 
 	 * @param index : an inverted index built for all documents(except the query)
-	 * @param vectors : the weight vectors of all documents
+	 * @param norms : the norm of each weight vector
 	 * @param queryVector : the weight vector of the query
 	 * @param queryNorm : the norm of the query vector
 	 */
-	public SimilaritiesChunkCalculator(Map<Integer,Double> sharedMap, List<String> query, InvertedIndex index, HashMap<Integer,Vector> vectors, Map<String,Double> queryVector, double queryNorm){  
+	public SimilaritiesChunkCalculator(Map<Integer,Double> sharedMap, List<String> query, InvertedIndex index, HashMap<Integer,Double> norms, Map<String,Double> queryVector, double queryNorm){  
 		
 		this.similarities = sharedMap;
 		this.query = query;
 		this.index = index;
-		this.vectors = vectors;
+		this.norms = norms;
 		this.queryVector = queryVector;
 		this.queryNorm = queryNorm;
 	}
@@ -50,17 +51,27 @@ public class SimilaritiesChunkCalculator implements Runnable {
 			//This word appears in > 0 documents
 			HashMap<Integer,MutableInt> documentsThatContainWord = index.getHashMap().get(word);
 			if(documentsThatContainWord != null){
+				
+				//Find idf
+				double idf = Math.log(1 + index.getNumberOfDocuments()/(double)documentsThatContainWord.size());
 			
 				//For each document that contains this word
 				for (Entry<Integer, MutableInt> doc : documentsThatContainWord.entrySet()){
 					
 					int docID = doc.getKey();
 					
+					//Find tf
+					double frequencyInThisDocument=0;
+					try {
+						frequencyInThisDocument = index.getDocumentsFrequency(word).get(docID).get();
+					} catch (ClassNotFoundException | IOException e) {}
+					double tf = 1+ Math.log(frequencyInThisDocument);
+					
 					//Read the weight of this word in the query and in the document
 					double weightOfWordInQuery = queryVector.get(word);
-					double weightOfWordInDocument = vectors.get(docID).getVector().get(word);
+					double weightOfWordInDocument = tf*idf;//vectors.get(docID).getVector().get(word);
 					
-					double documentNorm = vectors.get(docID).getNorm();
+					double documentNorm = norms.get(docID);
 					double addThisToSimilarity = (weightOfWordInQuery*weightOfWordInDocument)/(queryNorm*documentNorm);
 					
 					//Write to the shared map (critical section)

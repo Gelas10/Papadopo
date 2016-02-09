@@ -21,16 +21,15 @@ public class VectorChunkCalculator implements Runnable {
 	 * @param document : a "chunk" of this document (some words of the document) 
 	 * @param docID : the id of this document, that is (>=0 for all documents) or (=-1 for the query)
 	 * @param index : an inverted index built for all documents(except the query)
-	 * @param documentsCount : the total number of documents of our collection.
 	 */
-	public VectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> document, int docID, InvertedIndex index, int documentsCount){  
+	public VectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> document, int docID, InvertedIndex index){  
 		
 		this.vector = vector;
 		this.norm = norm;
 		this.document = document;
 		this.docID = docID;
 		this.index = index;
-		this.documentsCount = documentsCount;
+		this.documentsCount = index.getNumberOfDocuments();
 	}
 	
 	/**

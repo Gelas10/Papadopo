@@ -110,6 +110,9 @@ public class InvertedIndex
 	{
 		return documents;
 	}
+	public void setDocumentsCount(int count){
+		documents = count;
+	}
 	public void printIndex()
 	{
 		

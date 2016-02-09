@@ -12,15 +12,11 @@ import java.util.StringTokenizer;
 public class QueryProcessor {
 		
 	public InvertedIndex index;
-	public double norms[];
-	
-	/**Maps docID to "vector"*/
-	public HashMap<Integer,Vector> vectors;
+	public HashMap<Integer,Double> norms;
 	
 	/**Maps docID to similarity (with a query)*/
 	public Map<Integer,Double> similarity;
 	
-	public int documents;
 	public int queryID = -1;
 	public double queryNorm;
 	public Map<String,Double> queryVector;
@@ -31,11 +27,9 @@ public class QueryProcessor {
 	public QueryProcessor(String docs[])
 	{
 		
-		documents = docs.length;
-		norms = new double[documents];
+		norms = new HashMap<Integer,Double>();
 		similarity = new HashMap<Integer,Double>();
 		index = new InvertedIndex();
-		vectors = new HashMap<Integer,Vector>();
 		similarity = Collections.synchronizedMap(new HashMap<Integer,Double>());
 		
 		//Make the Inverted Index
@@ -47,7 +41,8 @@ public class QueryProcessor {
 				String word = tok.nextToken();
 				index.put(word, i);
 			}
-		}	
+		}
+		index.setDocumentsCount(docs.length);
 	}
 	
 	/**
@@ -119,13 +114,13 @@ public class QueryProcessor {
 		
 		if(whatComputation.equals("document vector")){
 			
-			myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+			myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index)));
 		}else if(whatComputation.equals("query vector")){
 			
-			myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+			myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,queryFrequencies)));
 		}else if(whatComputation.equals("similarities")){
 			
-			myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
+			myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, norms, queryVector, queryNorm)));
 		}
 		
 		//if the First thread left some words
@@ -141,13 +136,13 @@ public class QueryProcessor {
 				
 				if(whatComputation.equals("document vector")){
 					
-					myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents)));
+					myThreads.add(new Thread(new VectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index)));
 				}else if(whatComputation.equals("query vector")){
 					
-					myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,documents,queryFrequencies)));
+					myThreads.add(new Thread(new QueryVectorChunkCalculator((Map<String,Double>)sharedVector, sharedNorm, document.subList(start, end), docID , index,queryFrequencies)));
 				}else if(whatComputation.equals("similarities")){
 					
-					myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, vectors, queryVector, queryNorm)));
+					myThreads.add(new Thread(new SimilaritiesChunkCalculator((Map<Integer,Double>)sharedVector, document.subList(start, end), index, norms, queryVector, queryNorm)));
 				}
 			}
 		}
@@ -234,11 +229,11 @@ public class QueryProcessor {
 			//Distribute the vector computation to some threads
 			qp.distributeToThreads("document vector",i, words, totalWords, sharedVector, sharedNorm, threads);
 			
-			//Store final result
-			qp.norms[i] = Math.sqrt(sharedNorm.get());
-			qp.vectors.put(i, new Vector(sharedVector,sharedNorm.get()));
-			System.out.println("vector["+i+"]: "+qp.vectors.get(i).getVector());
-			System.out.println("norm["+i+"]: squareRoot(Σ(weight^2)) = "+qp.norms[i]);
+			//Store norm (dump the vector)
+			qp.norms.put(i, Math.sqrt(sharedNorm.get()));
+			
+			System.out.println("vector["+i+"]: "+sharedVector);
+			System.out.println("norm["+i+"]: squareRoot(Σ(weight^2)) = "+qp.norms.get(i));
 			
 		}
 		
