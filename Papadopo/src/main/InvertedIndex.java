@@ -151,7 +151,7 @@ public class InvertedIndex
 				
 				int totalSize=words.size();
 				totalWordsInDocument.put(docID, totalSize);
-				int portion=totalSize/cores;
+				int portion=1+totalSize/cores;
 				int start=0;
 				int end=portion;
 				
@@ -160,6 +160,11 @@ public class InvertedIndex
 					if(totalSize-end<portion)
 						end=totalSize;
 					//Give equal number of words to each thread
+					System.out.println("doc "+docID+" thread "+i);
+					for (String w : words.subList(start, end)) 
+					{
+						System.out.println(w);
+					}
 					workers[i]=new IndexWorker(words.subList(start, end),docID);//Initialize thread ( passing words, document id )
 					workers[i].start();
 					start=end;
@@ -229,8 +234,11 @@ public class InvertedIndex
 		long freeMemory=Runtime.getRuntime().freeMemory();
 		System.out.println(fileSize/(1024*1024)+"mb : "+freeMemory/(1024*1024)+"mb");
 		int turns=(int)(fileSize/freeMemory) +2;
+		if(fileSize<freeMemory/2)
+			turns=1;
 //	totalRecords=1600000*4;
-		long limit= totalRecords/turns;
+		long limit=1+ totalRecords/turns;
+		
 		int lineCount=0;
 		int indexCount=0;
 		String pattern="index";
@@ -271,6 +279,7 @@ public class InvertedIndex
 //					System.out.println(lineCount);
 					if(lineCount>=limit)
 					{
+						System.out.println("Writing and index");
 						try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream(pattern+indexCount+".hmp")))
 						{
 						//Resolving case where the term of the last record of current index is the same with the first record of the next index
@@ -449,11 +458,14 @@ public class InvertedIndex
 		String pattern="sorted-";
 //		int fileNumber=0;
 		SorterThread[] sorters=new SorterThread[cores];
+		//Approximation of chunk size using free memory and filesize
 		long length=(new File(inputFiles[0]).length())*cores;//22.6*4 = 90mb
 		long freeMemory=Runtime.getRuntime().freeMemory();//58mb
 		int timesToRun=(int)(length/freeMemory) +2;
+		if(length<freeMemory/2)
+			timesToRun=1;
 		long linesPerFile=totalRecords/cores;
-		long limitOfLines=linesPerFile/timesToRun;
+		long limitOfLines=1+linesPerFile/timesToRun;
 		System.out.println(length/(1024*1024) +"mb : "+freeMemory/(1024*1024)+"mb");
 		for (int i = 0; i < cores; i++) 
 		{
