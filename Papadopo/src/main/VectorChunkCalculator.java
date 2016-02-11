@@ -61,8 +61,9 @@ public class VectorChunkCalculator implements Runnable {
 			
 			if(!vector.containsKey(word)){
 			
-				HashMap<Integer,MutableInt> docsMap = index.getDocumentsFrequency(word);
-				
+				try{
+					HashMap<Integer,MutableInt> docsMap = index.getDocumentsFrequency(word);
+
 				int freqInThisDocument = docsMap.get(docID).get();
 				
 				//How many documents (OR query) contain this word?
@@ -84,6 +85,12 @@ public class VectorChunkCalculator implements Runnable {
 				
 				System.out.println("weightInDoc"+docID+"("+word+") = "+" [1+log("+freqInThisDocument+")]*[log(1+"+documentsCount+"/"+nt+")] = "+tf+"*"+idf+" = "+(tf*idf));
 				System.out.println("norm += (weight)^2 = ("+(tf*idf)+")^2 = "+Math.pow(tf*idf, 2));
+			
+				
+				}catch(NullPointerException e){
+					System.out.println("###########Exception at word="+ word+" docid "+docID+"###########");
+					System.out.println("###########"+word+" list:"+index.getDocumentsFrequency(word)+"############");
+				}
 			}
 		}		
 	}
