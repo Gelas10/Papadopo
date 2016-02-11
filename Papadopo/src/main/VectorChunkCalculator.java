@@ -61,7 +61,7 @@ public class VectorChunkCalculator implements Runnable {
 			
 			if(!vector.containsKey(word)){
 			
-				HashMap<Integer,MutableInt> docsMap = index.getHashMap().get(word);
+				HashMap<Integer,MutableInt> docsMap = index.getDocumentsFrequency(word);
 				
 				int freqInThisDocument = docsMap.get(docID).get();
 				

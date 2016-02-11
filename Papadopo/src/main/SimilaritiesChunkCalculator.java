@@ -49,7 +49,7 @@ public class SimilaritiesChunkCalculator implements Runnable {
 			System.out.println(word+" (of query)");
 						
 			//This word appears in > 0 documents
-			HashMap<Integer,MutableInt> documentsThatContainWord = index.getHashMap().get(word);
+			HashMap<Integer,MutableInt> documentsThatContainWord = index.getDocumentsFrequency(word);
 			if(documentsThatContainWord != null){
 				
 				//Find idf

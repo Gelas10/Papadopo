@@ -50,7 +50,7 @@ public class QueryVectorChunkCalculator implements Runnable{
 			String word = words.next();
 			
 			//This word appears in > 0 documents
-			HashMap<Integer,MutableInt> documentsThatContainWord = index.getHashMap().get(word);
+			HashMap<Integer,MutableInt> documentsThatContainWord = index.getDocumentsFrequency(word);
 			if(documentsThatContainWord != null){
 			
 				//query weight vector does not have the weight for this word already computed and stored

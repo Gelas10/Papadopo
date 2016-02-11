@@ -424,7 +424,7 @@ public class InvertedIndex
 		return totalWordsInDocument.get(docid);
 	}
 	//Functions used for building index
-	private String processWord(String x) 
+	public String processWord(String x) 
 	{
 	    return x.replaceAll("[(){},.;!?<>%]+", "").toLowerCase();//x.replaceAll("\\p{Punct}+", "");
 	}

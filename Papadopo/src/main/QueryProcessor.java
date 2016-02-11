@@ -1,11 +1,17 @@
 package main;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
@@ -24,7 +30,7 @@ public class QueryProcessor {
 	/**A simple frequency counter for every word in the query*/
 	public HashMap<String,Integer> queryFrequencies;
 	
-	public QueryProcessor(String docs[])
+	public QueryProcessor()
 	{
 		
 		norms = new HashMap<Integer,Double>();
@@ -33,16 +39,7 @@ public class QueryProcessor {
 		similarity = Collections.synchronizedMap(new HashMap<Integer,Double>());
 		
 		//Make the Inverted Index
-		//Read each document and insert it's words into the index
-		for(int i=0;i<docs.length;i++){
-			StringTokenizer tok = new StringTokenizer(docs[i]);
-			while(tok.hasMoreTokens()){
-				
-				String word = tok.nextToken();
-				index.put(word, i);
-			}
-		}
-		index.setDocumentsCount(docs.length);
+		index.buildIndex();
 	}
 	
 	/**
@@ -173,32 +170,19 @@ public class QueryProcessor {
 		int threads = 4;
 		int threadsForSimilarity = 2;
 		
-		String docs[] = 
-		{			
-			"ο κομήτης του Χάλλεϋ μας επισκέπτεται περίπου κάθε εβδομήντα έξι χρόνια",
-			"ο κομήτης του Χάλλεϋ ανακαλύφθηκε από τον αστρονόμο Έντμοντ Χάλλεϋ",
-			"ένας κομήτης διαγράφει ελλειπτική τροχιά",
-			"ο πλανήτης Άρης έχει δύο φυσικούς δορυφόρους το Δείμο και το Φόβο",
-			"ο πλανήτης Δίας έχει εξήντα τρείς γνωστούς φυσικούς δορυφόρους",
-			"ο Ήλιος είναι ένας αστέρας",
-			"ο Άρης είναι ένας πλανήτης του ηλιακού μας συστήματος"
-		};
-	
-		//Stress test
-		
-//		int threads = 35;
 //		String docs[] = 
-//			{			
-//				"κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης κομήτης μήλο τραπέζι",
-//				"Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ Χάλλεϋ ανακαλύφθηκε από τον αστρονόμο Έντμοντ Χάλλεϋ",
-//				"κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ κομήτης Χάλλεϋ μήλο σκύλος αστέρι πλανήτης",
-//				"ο πλανήτης Άρης έχει δύο φυσικούς δορυφόρους το Δείμο και το Φόβο",
-//				"ο πλανήτης Δίας έχει εξήντα τρείς γνωστούς φυσικούς δορυφόρους",
-//				"ο Ήλιος είναι ένας αστέρας",
-//				"ο Άρης είναι ένας πλανήτης του ηλιακού μας συστήματος"
-//			};
+//		{			
+//			"ο κομήτης του Χάλλεϋ μας επισκέπτεται περίπου κάθε εβδομήντα έξι χρόνια",
+//			"ο κομήτης του Χάλλεϋ ανακαλύφθηκε από τον αστρονόμο Έντμοντ Χάλλεϋ",
+//			"ένας κομήτης διαγράφει ελλειπτική τροχιά",
+//			"ο πλανήτης Άρης έχει δύο φυσικούς δορυφόρους το Δείμο και το Φόβο",
+//			"ο πλανήτης Δίας έχει εξήντα τρείς γνωστούς φυσικούς δορυφόρους",
+//			"ο Ήλιος είναι ένας αστέρας",
+//			"ο Άρης είναι ένας πλανήτης του ηλιακού μας συστήματος"
+//		};
+
 		
-		QueryProcessor qp = new QueryProcessor(docs);
+		QueryProcessor qp = new QueryProcessor();
 		
 		//Set the query
 		ArrayList<String> query = new ArrayList<String>();
@@ -206,34 +190,41 @@ public class QueryProcessor {
 		query.add("Χάλλεϋ");
 		int totalQueryWords = qp.setQuery(query);
 		
-		System.out.println("================================================================================================================================\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 
+		System.out.println("================================================================================================================================\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
 		
 		//For each document
-		for(int i=0;i<docs.length;i++){
+		for(int docID=1;docID<qp.index.getNumberOfDocuments();docID++){
 			
-			System.out.println("\n\n\n\n\n\n"+" doc"+i+"\n"+docs[i]);
+			String filename=docID+".txt";// Reading files named [id].txt ( example : 1.txt )
+			
+			//Add all words of this document to an ArrayList
+			ArrayList<String> words = new ArrayList<String>();
+			Scanner scanner;
+			try {
+				scanner = new Scanner(new File(filename));
+				while(scanner.hasNext()){
+					String word = scanner.next();
+					words.add(qp.index.processWord(word));
+				}
+			} catch (FileNotFoundException e) {}
+			
+			System.out.println("\n\n\n\n\n\n"+" doc"+docID+"\n"+words);
 			
 			//Compute the total number of words this document has.
-			int totalWords =0;
-			ArrayList<String> words = new ArrayList<String>();
-			StringTokenizer tok = new StringTokenizer(docs[i]);
-			while(tok.hasMoreTokens()){
-				words.add(tok.nextToken());
-				totalWords++;
-			}
+			int totalWords = qp.index.getSizeOfDocument(docID);
 			
 			//Declare the "shared" HashMap and norm in which all threads will write (this HashMap is the "vector" that contains word weights inside this document).
 			Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
 			SharedDouble sharedNorm = new SharedDouble();
 
 			//Distribute the vector computation to some threads
-			qp.distributeToThreads("document vector",i, words, totalWords, sharedVector, sharedNorm, threads);
+			qp.distributeToThreads("document vector",docID, words, totalWords, sharedVector, sharedNorm, threads);
 			
 			//Store norm (dump the vector)
-			qp.norms.put(i, Math.sqrt(sharedNorm.get()));
+			qp.norms.put(docID, Math.sqrt(sharedNorm.get()));
 			
-			System.out.println("vector["+i+"]: "+sharedVector);
-			System.out.println("norm["+i+"]: squareRoot(Σ(weight^2)) = "+qp.norms.get(i));
+			System.out.println("vector["+docID+"]: "+sharedVector);
+			System.out.println("norm["+docID+"]: squareRoot(Σ(weight^2)) = "+qp.norms.get(docID));
 			
 		}
 		
