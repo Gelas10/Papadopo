@@ -76,9 +76,7 @@ public class InvertedIndex
 			documents=totalDocs;
 			currentIndexId=0;
 		} 
-		catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		catch (IOException e) {e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -151,7 +149,8 @@ public class InvertedIndex
 				
 				int totalSize=words.size();
 				totalWordsInDocument.put(docID, totalSize);
-				int portion=1+totalSize/cores;
+				int portion=totalSize/cores;
+//				portion+=totalSize%cores;
 				int start=0;
 				int end=portion;
 				
@@ -159,12 +158,7 @@ public class InvertedIndex
 				{
 					if(totalSize-end<portion)
 						end=totalSize;
-					//Give equal number of words to each thread
-					System.out.println("doc "+docID+" thread "+i);
-					for (String w : words.subList(start, end)) 
-					{
-						System.out.println(w);
-					}
+					//Give equal number of words to each thread					
 					workers[i]=new IndexWorker(words.subList(start, end),docID);//Initialize thread ( passing words, document id )
 					workers[i].start();
 					start=end;
