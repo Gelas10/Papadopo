@@ -10,6 +10,9 @@ public class Papadopo
 		System.out.println("Only Building index");
 		InvertedIndex s=new InvertedIndex();
 		s.buildIndex();
+		System.out.println(s.getSizeOfDocument(1));
+		s.printIndexToFile("printed.txt");;
+//		s.getSizeOfDocument(1);
 	}
 
 }
