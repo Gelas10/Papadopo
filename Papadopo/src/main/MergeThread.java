@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 public class MergeThread extends Thread
 {
 	String file1;
@@ -82,10 +83,8 @@ public class MergeThread extends Thread
 									writer.write(line2+"\n");
 								}
 							}
-							
-							
-							new File(file1).delete();
-							new File(file2).delete();
+							new File(file1).deleteOnExit();
+							new File(file2).deleteOnExit();
 						
 						
 						} 
@@ -100,18 +99,6 @@ public class MergeThread extends Thread
 				new File(file1).renameTo(new File(output));
 				System.out.println("renamed");
 			}
-//				BufferedReader reader1=new BufferedReader(new FileReader(file1));
-//				BufferedReader reader2=new BufferedReader(new FileReader(file2));
-//				BufferedWriter writer=new BufferedWriter(new FileWriter(output));
-//				
-				
-		
-//		catch(NullPointerException e)
-//		{
-//			System.out.println("NPE with "+file1+","+file2);
-//			new File(file1).renameTo(new File(file1+"npe.txt"));
-//			new File(file2).renameTo(new File(file2+"npe.txt"));
-//		}
 	
 	}
 }
