@@ -1,85 +1,63 @@
 package main;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Map.Entry;
 import java.util.StringTokenizer;
+import java.util.Map.Entry;
+import java.util.PriorityQueue;
 
 public class QueryProcessor {
 		
-	public InvertedIndex index;
-	public HashMap<Integer,Double> norms;
+	int topK = 5;//How many results we want (at max)
+	int threadsForVector = 4;
+	int threadsForSimilarity = 2;
+	int threadsForQuery = 2;
 	
+	public InvertedIndex index;
+	public HashMap<Integer,Double> norms;	
 	/**Maps docID to similarity (with a query)*/
 	public Map<Integer,Double> similarity;
-	
 	public int queryID = -1;
 	public double queryNorm;
 	public Map<String,Double> queryVector;
-	
 	/**A simple frequency counter for every word in the query*/
 	public HashMap<String,Integer> queryFrequencies;
 	
 	public QueryProcessor()
 	{
-		
-		norms = new HashMap<Integer,Double>();
-		similarity = new HashMap<Integer,Double>();
+		norms = new HashMap<Integer,Double>();	
 		index = new InvertedIndex();
-		similarity = Collections.synchronizedMap(new HashMap<Integer,Double>());
 		
 		//Make the Inverted Index
 		index.buildIndex();
 	}
 	
 	/**
-	 * Counts the word frequency for each word in the query and computes the "vector" and norm of the query.
+	 * Computes the "vector" and norm of the query.
 	 * @param queryString : the full text of the query (all it's words)
-	 * @return the total number of words, the query has
+	 * @param totalWords : the total number of words on this query
 	 * */
-	public int setQuery(List<String> query){	
-		
-		//Count the frequency of each word inside the query
-		queryFrequencies = new HashMap<String,Integer>();
-
-		//Count the words of the query
-		int totalWords = 0;
-		Iterator<String> words = query.iterator();
-		while(words.hasNext()){
-			String word = words.next();
-			if(queryFrequencies.containsKey(word)){
-				int oldFreq = queryFrequencies.get(word);
-				queryFrequencies.put(word, oldFreq+1);
-			}else{
-				queryFrequencies.put(word, 1);
-			}
-			totalWords++;
-		}
-		
-		int threads = 2;
-		
+	public void computeQueryVectorAndNorm(List<String> query, int totalWords){	
+						
 		//Declare the "shared" HashMap and norm in which the threads are going to write.
 		Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
 		SharedDouble sharedNorm = new SharedDouble();
 		
-		distributeToThreads("query vector",queryID,query,totalWords,sharedVector,sharedNorm,threads);
+		distributeToThreads("query vector",queryID,query,totalWords,sharedVector,sharedNorm,threadsForQuery);
 		
 		queryNorm = Math.sqrt(sharedNorm.get());
 		queryVector = sharedVector;
 		System.out.println("vector[query]: "+queryVector);
 		System.out.println("norm[query]: squareRoot(Σ(weight^2)) = "+queryNorm);
 		
-		return totalWords;
 	}
 	
 	/**
@@ -162,38 +140,15 @@ public class QueryProcessor {
 		}
 	}
 	
-	public static void main(String[] args){
-		
-		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
-		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");
-		
-		int threads = 4;
-		int threadsForSimilarity = 2;
-		
-//		String docs[] = 
-//		{			
-//			"ο κομήτης του Χάλλεϋ μας επισκέπτεται περίπου κάθε εβδομήντα έξι χρόνια",
-//			"ο κομήτης του Χάλλεϋ ανακαλύφθηκε από τον αστρονόμο Έντμοντ Χάλλεϋ",
-//			"ένας κομήτης διαγράφει ελλειπτική τροχιά",
-//			"ο πλανήτης Άρης έχει δύο φυσικούς δορυφόρους το Δείμο και το Φόβο",
-//			"ο πλανήτης Δίας έχει εξήντα τρείς γνωστούς φυσικούς δορυφόρους",
-//			"ο Ήλιος είναι ένας αστέρας",
-//			"ο Άρης είναι ένας πλανήτης του ηλιακού μας συστήματος"
-//		};
-
-		
-		QueryProcessor qp = new QueryProcessor();
-		
-		//Set the query
-		ArrayList<String> query = new ArrayList<String>();
-		query.add("comet");
-		query.add("orbit");
-		int totalQueryWords = qp.setQuery(query);
-		
-		System.out.println("================================================================================================================================\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
+	/**
+	 * Reads every document file, stores all it's words, distributes some words to each thread
+	 * and each thread computes and fills a part of this document's weights vector (only the norm of the vector is stored).
+	 * @param threads : the number of threads doing the vector computations.
+	 * */
+	public void computeAllDocumentNorms(int threads){
 		
 		//For each document
-		for(int docID=1;docID<qp.index.getNumberOfDocuments();docID++){
+		for(int docID=1;docID<index.getNumberOfDocuments();docID++){
 			
 			String filename=docID+".txt";// Reading files named [id].txt ( example : 1.txt )
 			
@@ -204,42 +159,138 @@ public class QueryProcessor {
 				scanner = new Scanner(new File(filename));
 				while(scanner.hasNext()){
 					String word = scanner.next();
-					words.add(qp.index.processWord(word));
+					words.add(index.processWord(word));
 				}
 			} catch (FileNotFoundException e) {}
 			
-//			System.out.println("\n\n\n\n\n\n"+" doc"+docID+"\n"+words);
-			
 			//Compute the total number of words this document has.
-			int totalWords = qp.index.getSizeOfDocument(docID);
+			int totalWords = index.getSizeOfDocument(docID);
 			
 			//Declare the "shared" HashMap and norm in which all threads will write (this HashMap is the "vector" that contains word weights inside this document).
 			Map<String,Double> sharedVector = Collections.synchronizedMap(new HashMap<String,Double>());
 			SharedDouble sharedNorm = new SharedDouble();
 
 			//Distribute the vector computation to some threads
-			qp.distributeToThreads("document vector",docID, words, totalWords, sharedVector, sharedNorm, threads);
+			distributeToThreads("document vector",docID, words, totalWords, sharedVector, sharedNorm, threads);
 			
 			//Store norm (dump the vector)
-			qp.norms.put(docID, Math.sqrt(sharedNorm.get()));
+			norms.put(docID, Math.sqrt(sharedNorm.get()));
 			
 			System.out.println("vector["+docID+"]: "+sharedVector);
-			System.out.println("norm["+docID+"]: squareRoot(Σ(weight^2)) = "+qp.norms.get(docID));
+			System.out.println("norm["+docID+"]: squareRoot(Σ(weight^2)) = "+norms.get(docID));
+		}
+	}
+	
+	/**
+	 * Reads and stores all query words,
+	 * distributes them to some threads that compute the vector of this query,
+	 * computes the similarity of this query with the documents (whose vector norm is known)
+	 * and prints the topK similarities.
+	 * */
+	public void makeQuery(String queryString, int topK){
+				
+		//Count the frequency of each word inside the query
+		queryFrequencies = new HashMap<String,Integer>();
+		
+		//Add all words of this query to an ArrayList
+		ArrayList<String> query = new ArrayList<String>();
+		int totalQueryWords = 0;
+		StringTokenizer line = new StringTokenizer(queryString);
+		while(line.hasMoreTokens()){
 			
+			String word = index.processWord(line.nextToken());
+			query.add(index.processWord(word));
+			if(queryFrequencies.containsKey(word)){
+				int oldFreq = queryFrequencies.get(word);
+				queryFrequencies.put(word, oldFreq+1);
+			}else{
+				queryFrequencies.put(word, 1);
+			}
+			totalQueryWords++;
 		}
 		
-		System.out.println("\n\n\n================================================================================================================================\nComputing similarity ...\n");
+		//Compute query vector's norm
+		computeQueryVectorAndNorm(query,totalQueryWords);
 		
-		qp.distributeToThreads("similarities", -999, query, totalQueryWords, qp.similarity, null, threadsForSimilarity);
+		//Initialize similarities
+		similarity = Collections.synchronizedMap(new HashMap<Integer,Double>());
 		
+		//Compute similarities
+		System.out.println("\n\n\n\nComputing similarity ...\n");
+		distributeToThreads("similarities", -999, query, totalQueryWords, similarity, null, threadsForSimilarity);
 		System.out.println("\n\n\n\n");
 		
-		//Print similarities
-		for (Entry<Integer, Double> similarities : qp.similarity.entrySet()){
-			
+		//Put similarities in a Max Heap
+		PriorityQueue<Candidate> maxHeap = new  PriorityQueue<Candidate>(10, new MyComparator());
+		for (Entry<Integer, Double> similarities : similarity.entrySet()){
 			System.out.println("similarity("+similarities.getKey()+",query): "+similarities.getValue());
+			maxHeap.add(new Candidate(similarities.getKey(),similarities.getValue()));
 		}
+		
+		//Print top-k similarities
+		int k=0;
+		while(!maxHeap.isEmpty() && k<topK){
+			Candidate c = maxHeap.poll();
+			System.out.println("doc"+c.getDocID()+": "+c.getSimilarity());
+			k++;
+		}
+		
+	}
+	
+	public class MyComparator implements Comparator<Candidate> {
 
+		@Override
+		public int compare(Candidate ca, Candidate cb) {
+			double a = ca.getSimilarity();
+			double b = cb.getSimilarity();
+			
+			if(b-a > 0)		{return  1;}
+			else if(b-a < 0){return -1;}
+			else 			{return  0;}
+		}
+	    
+	}
+	
+	/**
+	 * A view of a document with it's similarity score with the query
+	 * */
+	public class Candidate{
+		
+		private int docID;
+		private double similarity;
+		
+		public Candidate(int docID, double similarity){
+			this.docID = docID;
+			this.similarity = similarity;
+		}
+		public int getDocID(){return docID;}
+		public double getSimilarity(){return similarity;}
+	}
+	
+	public static void main(String[] args){
+		
+		//TODO Time
+		
+		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
+		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");	
+		QueryProcessor qp = new QueryProcessor();
+		
+		//Compute All Document Norms
+		System.out.println("\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
+		qp.computeAllDocumentNorms(qp.threadsForVector);
+				
+		//Read all queries
+		String queryFilename="query.txt";
+		Scanner scanner;
+		try {
+			scanner = new Scanner(new File(queryFilename));
+			while(scanner.hasNextLine()){
+				
+				String query = scanner.nextLine();
+				System.out.println("MakeQuery: "+query);
+				qp.makeQuery(query, qp.topK);
+			}
+		} catch (FileNotFoundException e) {}
 	}
 
 }
