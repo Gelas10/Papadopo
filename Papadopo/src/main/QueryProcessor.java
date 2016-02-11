@@ -107,7 +107,7 @@ public class QueryProcessor {
 		
 		//Give a portion to the First thread
 		System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-		System.out.println("Thread1 takes: "+document.subList(start, end));
+//		System.out.println("Thread1 takes: "+document.subList(start, end));
 		
 		if(whatComputation.equals("document vector")){
 			
@@ -129,7 +129,7 @@ public class QueryProcessor {
 				start = end;
 				end += wordsPerThread;
 				System.out.println("\n---------------------------------------------------------------\n"+"portion: ["+start+","+end+")");
-				System.out.println("Thread"+(t+2)+" takes: "+document.subList(start, end));
+//				System.out.println("Thread"+(t+2)+" takes: "+document.subList(start, end));
 				
 				if(whatComputation.equals("document vector")){
 					
@@ -186,8 +186,8 @@ public class QueryProcessor {
 		
 		//Set the query
 		ArrayList<String> query = new ArrayList<String>();
-		query.add("κομήτης");
-		query.add("Χάλλεϋ");
+		query.add("comet");
+		query.add("orbit");
 		int totalQueryWords = qp.setQuery(query);
 		
 		System.out.println("================================================================================================================================\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
@@ -208,7 +208,7 @@ public class QueryProcessor {
 				}
 			} catch (FileNotFoundException e) {}
 			
-			System.out.println("\n\n\n\n\n\n"+" doc"+docID+"\n"+words);
+//			System.out.println("\n\n\n\n\n\n"+" doc"+docID+"\n"+words);
 			
 			//Compute the total number of words this document has.
 			int totalWords = qp.index.getSizeOfDocument(docID);

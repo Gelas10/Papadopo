@@ -60,7 +60,7 @@ public class VectorChunkCalculator implements Runnable {
 					//This rare time waste could be solved if the critical section was bigger and included all commands inside the "while" loop (we kept the minimal critical section). 
 			
 			if(!vector.containsKey(word)){
-			System.out.println("Exception at word="+ word+" docid "+docID); 
+			
 				HashMap<Integer,MutableInt> docsMap = index.getDocumentsFrequency(word);
 				
 				int freqInThisDocument = docsMap.get(docID).get();
