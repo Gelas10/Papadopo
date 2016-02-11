@@ -156,7 +156,7 @@ public class InvertedIndex
 				
 				for (int i = 0; i < workers.length; i++)
 				{
-					if(totalSize-end<portion)
+					if(i==workers.length-1)
 						end=totalSize;
 					//Give equal number of words to each thread					
 					workers[i]=new IndexWorker(words.subList(start, end),docID);//Initialize thread ( passing words, document id )
