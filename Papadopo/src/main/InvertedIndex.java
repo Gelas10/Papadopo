@@ -22,9 +22,11 @@ public class InvertedIndex
 	private ArrayList<String> filesWithIndexes;
 	private HashMap<String,HashMap<Integer,MutableInt>> index;//HashMap <Term,HashMap<Document,Frequency in Document>>
 	private int documents;
+	private HashMap<Integer,Integer> totalWordsInDocument;
 	public InvertedIndex()
 	{
 		index=new HashMap<>();
+		totalWordsInDocument=new HashMap<>();
 	}
 	public InvertedIndex(HashMap<String,HashMap<Integer,MutableInt>> hashmap)
 	{
@@ -39,6 +41,7 @@ public class InvertedIndex
 		}
 		
 	}
+	
 	/*
 	 * If there are many indexes stored to disk
 	 */
@@ -147,6 +150,7 @@ public class InvertedIndex
 				}
 				
 				int totalSize=words.size();
+				totalWordsInDocument.put(docID, totalSize);
 				int portion=totalSize/cores;
 				int start=0;
 				int end=portion;
@@ -344,7 +348,7 @@ public class InvertedIndex
 	{
 		return index;
 	}
-	public HashMap<Integer, MutableInt> getDocumentsFrequency(String term) throws FileNotFoundException, IOException, ClassNotFoundException
+	public HashMap<Integer, MutableInt> getDocumentsFrequency(String term) 
 	{
 		
 		if(manyIndexes)//Search in all indexes
@@ -363,7 +367,11 @@ public class InvertedIndex
 				try(ObjectInputStream in=new ObjectInputStream(new FileInputStream(filename)))
 				{
 					index=(HashMap<String, HashMap<Integer, MutableInt>>) in.readObject();
-				}
+				} catch (Exception e) 
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} 
 			}
 			
 		}		
@@ -411,7 +419,10 @@ public class InvertedIndex
 		}
 		
 	}
-	
+	public int getSizeOfDocument(int docid)
+	{
+		return totalWordsInDocument.get(docid);
+	}
 	//Functions used for building index
 	private String processWord(String x) 
 	{

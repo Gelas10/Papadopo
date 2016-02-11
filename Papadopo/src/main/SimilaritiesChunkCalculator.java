@@ -62,9 +62,7 @@ public class SimilaritiesChunkCalculator implements Runnable {
 					
 					//Find tf
 					double frequencyInThisDocument=0;
-					try {
-						frequencyInThisDocument = index.getDocumentsFrequency(word).get(docID).get();
-					} catch (ClassNotFoundException | IOException e) {}
+					frequencyInThisDocument = index.getDocumentsFrequency(word).get(docID).get();
 					double tf = 1+ Math.log(frequencyInThisDocument);
 					
 					//Read the weight of this word in the query and in the document
