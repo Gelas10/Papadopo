@@ -11,11 +11,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.Map.Entry;
 
-public class InvertedIndex 
+public class InvertedIndex implements Serializable
 {	
 	private boolean manyIndexes=false;
 	private int currentIndexId;
@@ -28,6 +29,7 @@ public class InvertedIndex
 		index=new HashMap<>();
 		totalWordsInDocument=new HashMap<>();
 	}
+	
 	public InvertedIndex(HashMap<String,HashMap<Integer,MutableInt>> hashmap)
 	{
 		index=hashmap;
@@ -321,6 +323,14 @@ public class InvertedIndex
 		new File(sortedRecords).deleteOnExit();
 		System.out.println("Index Built and stored in "+indexCount+" files");
 		System.out.println("Time= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
+		
+		try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream("indexObject"+".obj")))
+		{
+			out.writeObject(this);		
+			System.out.println("Object Written to Disk");
+		}
+		catch (FileNotFoundException e) {e.printStackTrace();}
+		catch (IOException e) {e.printStackTrace();}
 	}
 	
 	public void put(String word,int docId) 
