@@ -6,7 +6,13 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+
+/**
+ * A thread which merges 2 sorted files of records into 1 sorted file of records
+ * The files are sorted by term
+ * @author Gelas
+ *
+ */
 public class MergeThread extends Thread
 {
 	String file1;
@@ -24,36 +30,37 @@ public class MergeThread extends Thread
 		
 		
 		
-			if(file1!=null && file2!=null)
+			if(file1!=null && file2!=null)//If the input was 2 files
 			{
 				
-				try(BufferedWriter writer=new BufferedWriter(new FileWriter(output)))
+				try(BufferedWriter writer=new BufferedWriter(new FileWriter(output)))//Open writer for output file
 				{
-					try(BufferedReader reader1=new BufferedReader(new FileReader(file1)))
+					try(BufferedReader reader1=new BufferedReader(new FileReader(file1)))//Open reader for input file1
 					{
-						try(BufferedReader reader2=new BufferedReader(new FileReader(file2)))
+						try(BufferedReader reader2=new BufferedReader(new FileReader(file2)))//Open reader for input file2
 						{
+							//Read lines of both files
 							String line1=reader1.readLine();
 							String line2=reader2.readLine();
-							
+							//create their corresponding Record objects
 							Record record1=new Record(line1);
 							Record record2=new Record(line2);
 							
-							while((line1!=null) && (line2!=null))
+							while((line1!=null) && (line2!=null))//While there are unread lines in both files
 							{
 								
-								
-								if(record1.compareTo(record2)<0)
+								//Compare the records
+								if(record1.compareTo(record2)<0)//if record1 is smaller
 								{
-									writer.write(line1+"\n");
-									line1=reader1.readLine();
-									if(line1!=null)
+									writer.write(line1+"\n");//write it's corresponding line to output
+									line1=reader1.readLine();//and read the next
+									if(line1!=null)//if end of file was not reached
 									{
-										record1=new Record(line1);
+										record1=new Record(line1);//create its corresponding Record object
 									}
 									
 								}
-								else
+								else//Else do the same with record2
 								{
 									writer.write(line2+"\n");
 									line2=reader2.readLine();
@@ -64,7 +71,8 @@ public class MergeThread extends Thread
 									
 								}
 							}
-							
+							//When one of the two files was read completely
+							//Append it to output
 							if(line1!=null)
 							{
 								writer.write(line1+"\n");
@@ -94,9 +102,9 @@ public class MergeThread extends Thread
 					e.printStackTrace();
 				}
 			}
-			else if (file1!=null)
+			else if (file1!=null)//If only 1 file has been given as input for merging
 			{
-				new File(file1).renameTo(new File(output));
+				new File(file1).renameTo(new File(output));//Just rename it to output filename
 				System.out.println("renamed");
 			}
 	
