@@ -1,2 +1,4 @@
-comet Halley
-comet orbit
+3
+1 5 comet Halley
+2 4 comet orbit
+3 2 mars years

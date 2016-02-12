@@ -2,6 +2,7 @@ package main;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -144,8 +145,12 @@ public class QueryProcessor {
 	 * Reads every document file, stores all it's words, distributes some words to each thread
 	 * and each thread computes and fills a part of this document's weights vector (only the norm of the vector is stored).
 	 * @param threads : the number of threads doing the vector computations.
+	 * @return the execution time of this operation in seconds
 	 * */
-	public void computeAllDocumentNorms(int threads){
+	public double computeAllDocumentNorms(int threads){
+		
+		//Start timing
+		long start = System.nanoTime();
 		
 		//For each document
 		for(int docID=1;docID<index.getNumberOfDocuments();docID++){
@@ -179,6 +184,10 @@ public class QueryProcessor {
 			System.out.println("vector["+docID+"]: "+sharedVector);
 			System.out.println("norm["+docID+"]: squareRoot(Σ(weight^2)) = "+norms.get(docID));
 		}
+		
+		//How much time did this operation take to complete (in seconds)?
+		double totalTime = (System.nanoTime()-start)/Math.pow(10, 9);
+		return totalTime;
 	}
 	
 	/**
@@ -186,9 +195,13 @@ public class QueryProcessor {
 	 * distributes them to some threads that compute the vector of this query,
 	 * computes the similarity of this query with the documents (whose vector norm is known)
 	 * and prints the topK similarities.
+	 * @return the execution time of this operation in seconds
 	 * */
-	public void makeQuery(String queryString, int topK){
+	public double makeQuery(String queryString, int topK){
 				
+		//Start timing
+		long start = System.nanoTime();
+		
 		//Count the frequency of each word inside the query
 		queryFrequencies = new HashMap<String,Integer>();
 		
@@ -228,6 +241,7 @@ public class QueryProcessor {
 		}
 		
 		//Print top-k similarities
+		System.out.println("Top"+topK+":");
 		int k=0;
 		while(!maxHeap.isEmpty() && k<topK){
 			Candidate c = maxHeap.poll();
@@ -235,6 +249,9 @@ public class QueryProcessor {
 			k++;
 		}
 		
+		//How much time did this operation take to complete (in seconds)?
+		double totalTime = (System.nanoTime()-start)/Math.pow(10, 9);
+		return totalTime;
 	}
 	
 	public class MyComparator implements Comparator<Candidate> {
@@ -277,18 +294,26 @@ public class QueryProcessor {
 		
 		//Compute All Document Norms
 		System.out.println("\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
-		qp.computeAllDocumentNorms(qp.threadsForVector);
+		double buildTime = qp.computeAllDocumentNorms(qp.threadsForVector);
+		System.out.println("Computed all document norms in "+new DecimalFormat("#.##").format(buildTime)+" seconds");
 				
 		//Read all queries
 		String queryFilename="query.txt";
 		Scanner scanner;
 		try {
 			scanner = new Scanner(new File(queryFilename));
+			int totalQueries = Integer.valueOf(scanner.nextLine());
+			
 			while(scanner.hasNextLine()){
 				
-				String query = scanner.nextLine();
-				System.out.println("MakeQuery: "+query);
-				qp.makeQuery(query, qp.topK);
+				String line = scanner.nextLine();
+				StringTokenizer tokens = new StringTokenizer(line," ");
+				int queryID = Integer.valueOf(tokens.nextToken());
+				int numberOfResults = Integer.valueOf(tokens.nextToken());
+				String query = tokens.nextToken("");
+				System.out.println("\n\n\n\n\n********queryID:"+queryID+"(of "+totalQueries+")-->MakeQuery:"+query+" (top"+numberOfResults+")");
+				double queryTime = qp.makeQuery(query, numberOfResults);
+				System.out.println("Made query in "+new DecimalFormat("#.##").format(queryTime)+" seconds");
 			}
 		} catch (FileNotFoundException e) {}
 	}
