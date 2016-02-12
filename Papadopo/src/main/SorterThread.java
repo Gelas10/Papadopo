@@ -6,7 +6,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-
+/**
+ * A thread which takes as input a file of unsorted records and sorts it by term
+ * Also takes as input the memory limitation in lines
+ * The output is X sorted files (where X depends on the limit of memory lines given as input)
+ * @author Gelas
+ *
+ */
 public class SorterThread extends Thread
 {
 	private ArrayList<String> filenames;
@@ -29,34 +35,31 @@ public class SorterThread extends Thread
 	}
 	public void sortAndWrite()
 	{
-		filenames=new ArrayList<>();
+		filenames=new ArrayList<>();//The filenames of the output files
 		fileNumber=0;
-		strings=new ArrayList<>();
+		strings=new ArrayList<>();//The lines read to be sorted
 		try(BufferedReader reader=new BufferedReader(new FileReader(input)))
 		{
 			int count=0;
 			String line;
-			while((line=reader.readLine())!=null)
+			while((line=reader.readLine())!=null)//Read line which corresponds to a record
 			{
 					strings.add(line);
 					++count;
-					if(count>=limit)
+					if(count>=limit)//If the limit of memory lines given was reached
 					{
-						QuickSort(strings,0,strings.size()-1);
+						QuickSort(strings,0,strings.size()-1);//QuickSort the lines (First word of a line is always the term by which we want to sort)
 						filenames.add(pattern+fileNumber+".txt");
-						writeToFile(pattern+(fileNumber++)+".txt",strings);
-						strings=new ArrayList<>();
+						writeToFile(pattern+(fileNumber++)+".txt",strings);//Write file to disk
+						strings=new ArrayList<>();//Empty memory lines given
 						count=0;
 					}
 			}
-			if(!strings.isEmpty())
+			if(!strings.isEmpty())//QuickSort the final block of records
 			{
-				System.out.println("Quicksorting one last time");
 				QuickSort(strings,0,strings.size()-1);
 				filenames.add(pattern+fileNumber+".txt");
-				System.out.println("Successfully Quicksorted");
 				writeToFile(pattern+(fileNumber)+".txt",strings);
-				System.out.println("Written to file: "+pattern+(fileNumber)+".txt");
 				strings=null;
 			}
 			else

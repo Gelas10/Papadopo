@@ -4,7 +4,12 @@ import java.util.*;
 import java.util.Map.Entry;
 
 
-
+/**
+ * A Thread which takes as input some words of one document as a List and the id of the document
+ * Calculates the words' frequency and creates records of <term,document,frequency in document>
+ * @author Gelas
+ *
+ */
 public class IndexWorker extends Thread 
 {
 	List<String> words;
@@ -20,21 +25,20 @@ public class IndexWorker extends Thread
 	
 	public void run()
 	{
-		HashMap<String,MutableInt> freq=new HashMap<>();
-		for (String word : words) 
+		HashMap<String,MutableInt> freq=new HashMap<>();//Frequency of words in current document (doc field)
+		for (String word : words) //For each word
 		{
-//			System.out.println("running");
-			MutableInt count = freq.get(word);
-			if (count == null) 
+			MutableInt count = freq.get(word);//Frequency of word in current document (doc field)
+			if (count == null)//If it is the first occurrence 
 			{
-			    freq.put(word, new MutableInt());
+			    freq.put(word, new MutableInt());//create new entry
 			}
-			else 
+			else//If this has already been seen
 			{
-			    count.increment();
+			    count.increment();//Increment by 1 its frequency
 			}
 		}
-		for(Entry<String,MutableInt> entry : freq.entrySet())
+		for(Entry<String,MutableInt> entry : freq.entrySet())//Fill the ArrayList of records
 		{
 			records.add(new Record(entry.getKey(),doc,entry.getValue()));
 		}
