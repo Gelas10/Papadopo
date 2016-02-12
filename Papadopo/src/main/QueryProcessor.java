@@ -1,10 +1,15 @@
 package main;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,10 +25,10 @@ import java.util.PriorityQueue;
 
 public class QueryProcessor {
 		
-	public int topK = 5;//How many results we want (at max)
-	public int threadsForVector = 4;
-	public int threadsForSimilarity = 2;
-	public int threadsForQuery = 2;
+	private int cores = Runtime.getRuntime().availableProcessors();
+	public int threadsForVector = 2*cores;
+	public int threadsForSimilarity = 2*cores;
+	public int threadsForQuery = 2*cores;
 	public String queryAnswersFilename = "answers.txt";
 	public String timeFilename = "time.txt";
 	
@@ -208,6 +213,23 @@ public class QueryProcessor {
 			System.out.println("all vector norms: "+new DecimalFormat("#.##").format(totalTime)+" seconds");
 			writer.write("all vector norms:  "+new DecimalFormat("#.##").format(totalTime)+" seconds\n");
 		}catch (IOException e) {e.printStackTrace();}
+		
+		//Write "norms" to binary file
+		try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream("norms")))
+		{
+			out.writeObject(norms);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void readAllDocumentVectorNorms(){
+		
+		try(ObjectInputStream in=new ObjectInputStream(new BufferedInputStream(new FileInputStream("norms"),16*1024)))
+		{
+			norms= (HashMap<Integer,Double>) in.readObject();//Bring it to memory
+		} catch (Exception e) {e.printStackTrace();} 
 	}
 	
 	/**
@@ -284,6 +306,10 @@ public class QueryProcessor {
 		
 	}
 	
+	/**
+	 * Reverse comparison between double numbers (example 2.0 < 1.5).
+	 * This is used to change the PriorityQueue (Min Heap) into a (Max Heap).
+	 * */
 	public class MyComparator implements Comparator<Candidate> {
 
 		@Override
@@ -315,17 +341,16 @@ public class QueryProcessor {
 	}
 	
 	public static void main(String[] args){
-		
-		//TODO Time
-		
+				
 		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");	
 		QueryProcessor qp = new QueryProcessor();
 		
 		//Compute All Document Norms
 		System.out.println("\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
-		qp.computeAllDocumentNorms(qp.threadsForVector);
-				
+		qp.computeAllDocumentNorms(qp.threadsForVector);//Do compute norms
+		//qp.readAllDocumentVectorNorms();				//Do NOT compute norms (read them from existing file "norms")	
+		
 		//Read all queries
 		String queryFilename="query.txt";
 		Scanner scanner;
