@@ -46,8 +46,19 @@ public class QueryProcessor {
 		norms = new HashMap<Integer,Double>();	
 		index = new InvertedIndex();
 		
+		//Start timing
+		long start = System.nanoTime();
+		
 		//Make the Inverted Index
 		index.buildIndex();
+		
+		//How much time did this operation take to complete (in seconds)?
+		double totalTime = (System.nanoTime()-start)/Math.pow(10, 9);
+		try(BufferedWriter writer=new BufferedWriter(new FileWriter(timeFilename,true)))
+		{
+			System.out.println("Index built in "+new DecimalFormat("#.##").format(totalTime)+" seconds");
+			writer.write("Index built in "+new DecimalFormat("#.##").format(totalTime)+" seconds\n");
+		}catch (IOException e) {e.printStackTrace();}
 	}
 	
 	/**
