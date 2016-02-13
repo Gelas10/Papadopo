@@ -105,7 +105,6 @@ public class MergeThread extends Thread
 			else if (file1!=null)//If only 1 file has been given as input for merging
 			{
 				new File(file1).renameTo(new File(output));//Just rename it to output filename
-				System.out.println("renamed");
 			}
 	
 	}

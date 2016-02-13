@@ -12,11 +12,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.util.*;
 
-public class InvertedIndex implements Serializable
+public class InvertedIndex
 {	
 	private boolean manyIndexes=false;
 	private int currentIndexId;
@@ -28,20 +27,6 @@ public class InvertedIndex implements Serializable
 	{
 		index=new HashMap<>();
 		totalWordsInDocument=new HashMap<>();
-	}
-	
-	public InvertedIndex(HashMap<String,HashMap<Integer,MutableInt>> hashmap)
-	{
-		index=hashmap;
-	}
-	public InvertedIndex(String filename,int totalDocs) throws FileNotFoundException, IOException, ClassNotFoundException
-	{
-		try(ObjectInputStream in=new ObjectInputStream(new FileInputStream(filename)))
-		{
-			index=(HashMap<String, HashMap<Integer, MutableInt>>) in.readObject();
-			documents=totalDocs;
-		}
-		
 	}
 	/**
 	 * Builds the index from documents on disk using as many threads as there are cores
@@ -154,7 +139,6 @@ public class InvertedIndex implements Serializable
 		totalNumberOfDocuments=docID;
 		System.out.println("TimeBeforeSort= "+new DecimalFormat("#.##").format((System.nanoTime()-before)/Math.pow(10, 9))+" sec");//
 		//Phase2) Sorting while using limited number of lines in memory
-//Only Testing		totalRecords=1500000*4;
 		ArrayList<String> files=new ArrayList<>();//Names of files which contain records sorted by term
 		files=sortFromFile(unsortedFilenames,cores,totalRecords);//sort using <cores> threads
 		String sortedRecords="sortedRecords.txt";
@@ -275,19 +259,7 @@ public class InvertedIndex implements Serializable
 		System.out.println("Deleting file : "+sortedRecords);
 		new File(sortedRecords).deleteOnExit();
 		
-		//Only Testing
-//		try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream("indexObject"+".obj")))
-//		{
-//			out.writeObject(this);		
-//			System.out.println("Object Written to Disk");
-//		}
-//		catch (FileNotFoundException e) {e.printStackTrace();}
-//		catch (IOException e) {e.printStackTrace();}
-	}
-	//NOT NEEDED ANYMORE
-	public HashMap<String,HashMap<Integer, MutableInt>> getHashMap()
-	{
-		return index;
+
 	}
 	/**
 	 * Searches for the term's occurrence list inside the index which is stored in memory
@@ -296,6 +268,7 @@ public class InvertedIndex implements Serializable
 	 * @param term the term whose occurrence list is being asked
 	 * @return the occurrence list
 	 */
+	@SuppressWarnings("unchecked")
 	public synchronized HashMap<Integer, MutableInt> getDocumentsFrequency(String term) 
 	{
 		
@@ -400,7 +373,6 @@ public class InvertedIndex implements Serializable
 		
 			ArrayList<String> nextFilenames=new ArrayList<>();//What files will need to be merged in the next phase
 			
-			int totalFiles;
 			MergeThread[] mergers;
 			mergers=new MergeThread[(filenames.size()/2)+1];//Create half as many mergers as there are files +1
 			
@@ -409,7 +381,6 @@ public class InvertedIndex implements Serializable
 			
 			do
 			{
-				totalFiles=filenames.size();
 				nextFilenames.clear();
 				
 				
