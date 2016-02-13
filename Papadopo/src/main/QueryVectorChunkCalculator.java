@@ -19,7 +19,7 @@ public class QueryVectorChunkCalculator implements Runnable{
 	 * Initializes all the data structures this thread will read from and write to.
 	 * @param vector : a shared Map where this function is going to write/read (other threads may also be using this shared Map).
 	 * @param norm : a shared Double that is incremented (other threads may also be using this shared Double).
-	 * @param document : a "chunk" the query (some words of the query) 
+	 * @param query : a "chunk" of the query (some words of the query) 
 	 * @param queryID : the id of the query
 	 * @param index : an inverted index built for all documents (except the query)
 	 * @param queryFrequencies : the frequency of each word of the query, inside the query.
@@ -61,7 +61,6 @@ public class QueryVectorChunkCalculator implements Runnable{
 					//How many documents (AND query) contain this word?
 					int nt;
 					nt = documentsThatContainWord.size();
-					//nt++;//For the query
 		
 					//Compute tf,idf
 					double idf = Math.log( 1 + documentsCount/(double)nt);
@@ -81,6 +80,5 @@ public class QueryVectorChunkCalculator implements Runnable{
 			}	
 		}
 	}
-
 	
 }

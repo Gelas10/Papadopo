@@ -234,6 +234,11 @@ public class QueryProcessor {
 		}
 	}
 	
+	/**
+	 * Reads a binary file named "norms" that contains a HashMap with the norm of each document's vector.
+	 * This function's only purpose is to prevent multiple computations of the vectors' norms if the program
+	 * is executed multiple times.
+	 * */
 	@SuppressWarnings("unchecked")
 	public void readAllDocumentVectorNorms(){
 		
@@ -248,6 +253,9 @@ public class QueryProcessor {
 	 * distributes them to some threads that compute the vector of this query,
 	 * computes the similarity of this query with the documents (whose vector norm is known)
 	 * and prints the topK similarities.
+	 * @param queryID : the id of this query
+	 * @param queryString : a String containing all words of the query
+	 * @param topK : the total number of results we want to get (at max)
 	 * */
 	public void makeQuery(int queryID, String queryString, int topK){
 				
@@ -318,7 +326,7 @@ public class QueryProcessor {
 	}
 	
 	/**
-	 * Reverse comparison between double numbers (example 2.0 < 1.5).
+	 * A Comparator that implements reverse comparison between double numbers (example 2.0 < 1.5).
 	 * This is used to change the PriorityQueue (Min Heap) into a (Max Heap).
 	 * */
 	public class MyComparator implements Comparator<Candidate> {

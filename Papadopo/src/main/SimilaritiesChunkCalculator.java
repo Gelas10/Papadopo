@@ -20,7 +20,7 @@ public class SimilaritiesChunkCalculator implements Runnable {
 	 * @param sharedMap : a shared Map where this function is going to write/read (other threads may also be using this shared Map).
 	 * @param query : a "chunk" of the query (some words of the query) 
 	 * @param index : an inverted index built for all documents(except the query)
-	 * @param norms : the norm of each weight vector
+	 * @param norms : the norm of each document's weight vector
 	 * @param queryVector : the weight vector of the query
 	 * @param queryNorm : the norm of the query vector
 	 */
@@ -66,7 +66,7 @@ public class SimilaritiesChunkCalculator implements Runnable {
 					
 					//Read the weight of this word in the query and in the document
 					double weightOfWordInQuery = queryVector.get(word);
-					double weightOfWordInDocument = tf*idf;//vectors.get(docID).getVector().get(word);
+					double weightOfWordInDocument = tf*idf;
 					
 					double documentNorm = norms.get(docID);
 					double addThisToSimilarity = (weightOfWordInQuery*weightOfWordInDocument)/(queryNorm*documentNorm);

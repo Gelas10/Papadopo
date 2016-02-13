@@ -19,7 +19,7 @@ public class VectorChunkCalculator implements Runnable {
 	 * @param vector : a shared Map where this function is going to write/read (other threads may also be using this shared Map).
 	 * @param norm : a shared Double that is incremented (other threads may also be using this shared Double).
 	 * @param document : a "chunk" of this document (some words of the document) 
-	 * @param docID : the id of this document, that is (>=0 for all documents) or (=-1 for the query)
+	 * @param docID : the id of this document
 	 * @param index : an inverted index built for all documents(except the query)
 	 */
 	public VectorChunkCalculator(Map<String,Double> vector, SharedDouble norm, List<String> document, int docID, InvertedIndex index){  
@@ -41,7 +41,7 @@ public class VectorChunkCalculator implements Runnable {
 	public void run() {
 		
 		//* NOTE1: The "vector" is actually a HashMap that maps Word to Weight.
-		 //* NOTE2: tf and idf of a word don't change, so if we see that the weight of a word is already set, there is no need to recompute and reset it.
+		//* NOTE2: tf and idf of a word don't change, so if we see that the weight of a word is already set, there is no need to recompute and reset it.
 		
 		//Read the document and for each word insert a weight to "vector" 
 		Iterator<String> words = document.iterator();
@@ -68,7 +68,6 @@ public class VectorChunkCalculator implements Runnable {
 				//How many documents (OR query) contain this word?
 				int nt;
 				nt = docsMap.size();
-				//if(queryFrequencies.containsKey(word)){nt++;}
 	
 				//Compute tf, idf
 				double idf = Math.log( 1 + documentsCount/(double)nt);
