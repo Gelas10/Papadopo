@@ -10,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,6 +23,12 @@ import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
+
+import edu.mit.jwi.Dictionary;
+import edu.mit.jwi.IDictionary;
+import edu.mit.jwi.morph.WordnetStemmer;
+
+
 
 public class QueryProcessor {
 		
@@ -40,11 +47,34 @@ public class QueryProcessor {
 	public Map<String,Double> queryVector;
 	/**A simple frequency counter for every word in the query*/
 	public HashMap<String,Integer> queryFrequencies;
+	public IDictionary dictionary;//(not loaded in RAM)
+	//<RAM>//IRAMDictionary dictionary;  //(loaded in RAM) (JVM Heap size increase may be required)
+	WordnetStemmer stemmer;
+	boolean useQueryExpansion;
 	
-	public QueryProcessor()
+	public QueryProcessor(boolean useQueryExpansion)
 	{
 		norms = new HashMap<Integer,Double>();	
 		index = new InvertedIndex();
+		this.useQueryExpansion = useQueryExpansion;
+		
+		//Open the WordNet dictionary (this operation is not timed by the timer)
+		if(useQueryExpansion){
+		
+			URL url;
+			try {
+				url = new URL ("file",null,"dict");
+				dictionary = new Dictionary (url);
+				dictionary.open();
+		
+				//<RAM>//dictionary = new RAMDictionary(url ,ILoadPolicy.NO_LOAD);
+				//<RAM>//dictionary.load(true);
+				//<RAM>//} catch (IOException | InterruptedException e1) {}
+			} catch (IOException e1) {}
+			
+			//Initialize the stemmer (this operation is not timed by the timer)
+			stemmer = new WordnetStemmer(dictionary);
+		}
 		
 		//Start timing
 		long start = System.nanoTime();
@@ -249,6 +279,29 @@ public class QueryProcessor {
 	}
 	
 	/**
+	 * Finds all stems (of any part of speech) for a given word (including the word itself).
+	 * Since the given word is inclusive, null is never returned.
+	 * @param word : a word to get stems for
+	 * @return all distinct stems of this word (this word is included)
+	 * */
+	public ArrayList<String> getStems(String word){
+		
+		ArrayList<String> stems = new ArrayList<String>();
+		
+		//Get all stems of this word
+		WordnetStemmer stemmer = new WordnetStemmer(dictionary);
+		Iterator<String> stemsIt = stemmer.findStems(word, null).iterator();
+		while(stemsIt.hasNext()){
+			String stem = stemsIt.next();
+			if(!stem.equals(word)){
+				stems.add(stem);
+			}
+		}
+		stems.add(word);
+		return stems;
+	}
+	
+	/**
 	 * Reads and stores all query words,
 	 * distributes them to some threads that compute the vector of this query,
 	 * computes the similarity of this query with the documents (whose vector norm is known)
@@ -272,14 +325,36 @@ public class QueryProcessor {
 		while(line.hasMoreTokens()){
 			
 			String word = index.processWord(line.nextToken());
-			query.add(index.processWord(word));
-			if(queryFrequencies.containsKey(word)){
-				int oldFreq = queryFrequencies.get(word);
-				queryFrequencies.put(word, oldFreq+1);
+			if(useQueryExpansion){
+				
+				//Stem each word of the query and process all resulting words
+				Iterator<String> stems = getStems(word).iterator();
+				while(stems.hasNext()){
+					
+					String stem = stems.next();
+					
+					//Process each stem word of the query
+					query.add(index.processWord(stem));
+					if(queryFrequencies.containsKey(stem)){
+						int oldFreq = queryFrequencies.get(stem);
+						queryFrequencies.put(stem, oldFreq+1);
+					}else{
+						queryFrequencies.put(stem, 1);
+					}
+					totalQueryWords++;
+				}
 			}else{
-				queryFrequencies.put(word, 1);
+				
+				//Process each word of the query (as is)
+				query.add(index.processWord(word));
+				if(queryFrequencies.containsKey(word)){
+					int oldFreq = queryFrequencies.get(word);
+					queryFrequencies.put(word, oldFreq+1);
+				}else{
+					queryFrequencies.put(word, 1);
+				}
+				totalQueryWords++;
 			}
-			totalQueryWords++;
 		}
 		
 		//Compute query vector's norm
@@ -363,7 +438,7 @@ public class QueryProcessor {
 				
 		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");	
-		QueryProcessor qp = new QueryProcessor();
+		QueryProcessor qp = new QueryProcessor(true);
 		
 		//Compute All Document Norms
 		System.out.println("\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
