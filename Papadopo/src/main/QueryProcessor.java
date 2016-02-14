@@ -441,8 +441,12 @@ public class QueryProcessor {
 				
 		System.out.println("Remember: N  = #documents (without query)\n          nt = #documents that contain word (without query)");
 		System.out.println("Remember: weight = [1+ln(freq)]*ln(1+N/nt)\n\n");	
-		QueryProcessor qp = new QueryProcessor(true);
-		
+		boolean queryExpansion=false;
+		if(args.length>0)
+		{
+			queryExpansion=Boolean.parseBoolean(args[0]);
+		}
+		QueryProcessor qp = new QueryProcessor(queryExpansion);
 		//Compute All Document Norms
 		System.out.println("\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
 		qp.computeAllDocumentNorms(qp.threadsForVector);//Do compute norms
