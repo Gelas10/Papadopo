@@ -322,11 +322,11 @@ public class QueryProcessor {
 		ArrayList<String> query = new ArrayList<String>();
 		int totalQueryWords = 0;
 		StringTokenizer line = new StringTokenizer(queryString);
-		while(line.hasMoreTokens()){
-			
-			String word = index.processWord(line.nextToken());
-			if(useQueryExpansion){
-				
+		
+		if(useQueryExpansion){
+			while(line.hasMoreTokens()){
+				String word = index.processWord(line.nextToken());
+					
 				//Stem each word of the query and process all resulting words
 				Iterator<String> stems = getStems(word).iterator();
 				while(stems.hasNext()){
@@ -342,8 +342,11 @@ public class QueryProcessor {
 						queryFrequencies.put(stem, 1);
 					}
 					totalQueryWords++;
-				}
-			}else{
+				}	
+			}
+		}else{
+			while(line.hasMoreTokens()){
+				String word = index.processWord(line.nextToken());
 				
 				//Process each word of the query (as is)
 				query.add(index.processWord(word));
