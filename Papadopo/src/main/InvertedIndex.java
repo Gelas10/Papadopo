@@ -85,7 +85,7 @@ public class InvertedIndex
 		before=System.nanoTime();//timing
 		do//Phase1) Creating the records
 		{
-			String filename=docID+".txt";// Reading files named [id].txt ( example : 1.txt )
+			String filename = QueryProcessor.pathToDocumentsFolder+docID+".txt";// Reading files named [id].txt ( example : 1.txt )
 			try (Scanner scanner=new Scanner(new File(filename)))
 			{
 				

@@ -38,6 +38,8 @@ public class QueryProcessor {
 	public int threadsForQuery = 2*cores;
 	public String queryAnswersFilename = "answers.txt";
 	public String timeFilename = "time.txt";
+	public static String pathToDocumentsFolder = "documents/";
+	public static String pathToResultsFolder = "";
 	
 	public InvertedIndex index;
 	public HashMap<Integer,Double> norms;	
@@ -57,6 +59,8 @@ public class QueryProcessor {
 		norms = new HashMap<Integer,Double>();	
 		index = new InvertedIndex();
 		this.useQueryExpansion = useQueryExpansion;
+		timeFilename = pathToResultsFolder.concat(timeFilename);
+		queryAnswersFilename = pathToResultsFolder.concat(queryAnswersFilename);
 		
 		//Open the WordNet dictionary (this operation is not timed by the timer)
 		if(useQueryExpansion){
@@ -207,9 +211,9 @@ public class QueryProcessor {
 	 * Reads every document file, stores all it's words, distributes some words to each thread
 	 * and each thread computes and fills a part of this document's weights vector (only the norm of the vector is stored).
 	 * @param threads : the number of threads doing the vector computations.
-	 * @return the execution time of this operation in seconds
+	 * @param writeNormsToFile : if true, then the "norms" HashMap is written in a file named "norms" for future use (this way the norms are not re-computed in future use). 
 	 * */
-	public void computeAllDocumentNorms(int threads){
+	public void computeAllDocumentNorms(int threads, boolean writeNormsToFile){
 		
 		//Start timing
 		long start = System.nanoTime();
@@ -217,7 +221,7 @@ public class QueryProcessor {
 		//For each document
 		for(int docID=1;docID<index.getNumberOfDocuments();docID++){
 			
-			String filename=docID+".txt";// Reading files named [id].txt ( example : 1.txt )
+			String filename = pathToDocumentsFolder+docID+".txt";// Reading files named [id].txt ( example : 1.txt )
 			
 			//Add all words of this document to an ArrayList
 			ArrayList<String> words = new ArrayList<String>();
@@ -255,12 +259,15 @@ public class QueryProcessor {
 			writer.write("all vector norms:  "+new DecimalFormat("#.##").format(totalTime)+" seconds\n");
 		}catch (IOException e) {e.printStackTrace();}
 		
-		//Write "norms" to binary file
-		try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream("norms")))
-		{
-			out.writeObject(norms);
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(writeNormsToFile){
+			
+			//Write "norms" to binary file
+			try(ObjectOutputStream out=new ObjectOutputStream(new FileOutputStream("norms")))
+			{
+				out.writeObject(norms);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -371,11 +378,16 @@ public class QueryProcessor {
 		distributeToThreads("similarities", -999, query, totalQueryWords, similarity, null, threadsForSimilarity);
 		System.out.println("\n\n\n\n");
 		
-		//Put similarities in a Max Heap
+		//Put similarities in a Max Heap (and remove them from the HashMap)
 		PriorityQueue<Candidate> maxHeap = new  PriorityQueue<Candidate>(10, new MyComparator());
-		for (Entry<Integer, Double> similarities : similarity.entrySet()){
-			System.out.println("similarity("+similarities.getKey()+",query): "+similarities.getValue());
-			maxHeap.add(new Candidate(similarities.getKey(),similarities.getValue()));
+		Iterator<Entry<Integer, Double>> similarities = similarity.entrySet().iterator();
+		while(similarities.hasNext()){
+			
+			Entry<Integer, Double> sim = similarities.next();
+			System.out.println("similarity("+sim.getKey()+",query): "+sim.getValue());
+			
+			maxHeap.add(new Candidate(sim.getKey(),sim.getValue()));
+			similarities.remove();
 		}
 		
 		//Print top-k similarities
@@ -449,7 +461,7 @@ public class QueryProcessor {
 		QueryProcessor qp = new QueryProcessor(queryExpansion);
 		//Compute All Document Norms
 		System.out.println("\nComputing vector weights and norm for each document. (a vector contains weights for ALL words of the document) ..."); 	
-		qp.computeAllDocumentNorms(qp.threadsForVector);//Do compute norms
+		qp.computeAllDocumentNorms(qp.threadsForVector, false);//Do compute norms
 		//qp.readAllDocumentVectorNorms();				//Do NOT compute norms (read them from existing file "norms")	
 		
 		//Read all queries
